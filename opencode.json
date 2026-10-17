@@ -1,0 +1,13 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "ollama/qwen-coder-local",
+  "provider": {
+    "ollama": {
+      "models": {
+        "qwen-coder-local": {
+          "name": "Local Qwen2.5 Coder 7B"
+        }
+      }
+    }
+  }
+}
