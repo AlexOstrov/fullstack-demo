@@ -13,6 +13,12 @@
 
 **DoD элемента бэклога:** реализовано + тесты + обновлена Артефактная память + статус здесь.
 
+### Прогресс по B4
+
+- R-3 (env `AI_PRESET_*`, `GAME_TTL_MINUTES`) и R-4 (маппинг `Difficulty.CUSTOM → AiSettings`) — **закрыты в Sprint 3** (`AiProperties`/`GameProperties`, `AiSettingsFactory`; ADR-0017, F-013/F-015).
+- R-6, частично: демо-`items` удалены (миграция `V2__drop_items`, ADR-0009/R-6) — **закрыто в Sprint 3**.
+- Остаются: R-2 (`score`/`depth` при обрыве первой итерации), R-5 (расширение `LlmComment`: `style`/`emotion`/`commentSource` — Sprint 4), оставшаяся часть R-6 (дубли копирования доски, мелочи тестов), R-7 (профилирование мобильности — Sprint 8).
+
 ## Ссылки
 
 - Ревью кода и реализации Sprint 0–2: `docs/memory/REVIEW-sprint-0-2.md` (замечание R-1 исправлено в рамках ревью).

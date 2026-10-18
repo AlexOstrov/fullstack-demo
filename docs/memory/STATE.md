@@ -5,10 +5,10 @@
 ## Сейчас
 
 - ТЗ: **финализировано (v2.4)** — `game-chashki-TZ.md`
-- Спринт: **Sprint 2 — Минимакс**, ✅ **завершён** (S2.1–S2.5)
-- Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; замечание R-1 (двойной учёт корня в обрезке повторений) **исправлено**, R-2…R-7 → бэклог **B4**
+- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6)
+- Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; R-1 исправлено (F-012); R-3/R-4 закрыты в S3 (env-настройки `AI_PRESET_*`, маппинг `CUSTOM`); R-2/R-5/R-6/R-7 → бэклог **B4**
 - В работе: —
-- Следующая задача: **S3.1 — реестр партий: `ConcurrentHashMap` + per-game lock + TTL (ТЗ 4.2, раздел 14)** — старт Sprint 3
+- Следующая задача: **S4.1 — микросервис-прокси `llm-service` к Ollama: `LLM_MODEL` (по умолчанию `qwen2.5:7b-instruct`), эндпоинт списка моделей (Ollama `/api/tags` ∩ `LLM_ALLOWED_MODELS`)** — старт Sprint 4
 
 ## Задачи Sprint 1 (ТЗ, раздел 14) — все выполнены
 
@@ -27,14 +27,14 @@
 - S2.4 ✅ — обрезка по повторению/ничьей (ТЗ 6): троекратность и «30 полуходов дамками» = 0 внутри поиска. (коммит `d0bec33`)
 - S2.5 ✅ — тесты на эталонных позициях и бенчмарк бюджета времени (ТЗ 12): `AiReferencePositionsTest`, DoD спринта выполнено. (коммит `33b64c1`)
 
-## Задачи Sprint 3 (ТЗ, раздел 14)
+## Задачи Sprint 3 (ТЗ, раздел 14) — все выполнены
 
-- S3.1 — реестр партий: `ConcurrentHashMap` + per-game lock + TTL (ТЗ 4.2).
-- S3.2 — эндпоинты: start, get, moves, move, ai-move, resign, draw, restart, `GET /api/config/llm-models` (ТЗ 5).
-- S3.3 — DTO-`record` + Jakarta Validation; единый формат ошибок; allowlist `llmModel`.
-- S3.4 — идемпотентность (`clientMoveNumber`), `AI_BUSY`, `STALE_STATE` (ТЗ 5.4).
-- S3.5 — персистентность: Flyway-миграция `tournament`, JPA, автосохранение результата best-effort (ТЗ 4.7).
-- S3.6 — интеграционные тесты API, гонок и персистентности (ТЗ 12).
+- S3.1 ✅ — реестр партий: `ConcurrentHashMap` + per-game lock + TTL (ТЗ 4.2): `session/GameSession`, `session/GameRegistry`, фоновое вытеснение. (коммит `82a4b90`)
+- S3.2 ✅ — эндпоинты: start, get, moves, move, ai-move, resign, draw, restart, `GET /api/config/llm-models` (ТЗ 5). (коммит `0a7f031`)
+- S3.3 ✅ — DTO-`record` + Jakarta Validation; единый формат ошибок (`error/*`); allowlist `llmModel`. (коммит `0a7f031`)
+- S3.4 ✅ — идемпотентность (`clientMoveNumber`), `AI_BUSY` (в т.ч. при конкурентном запросе), `STALE_STATE` (ТЗ 5.4). (коммит `0a7f031`)
+- S3.5 ✅ — персистентность: Flyway `V2__drop_items`/`V3__create_tournament`/`V4__create_llm_comments`, JPA, автосохранение результата best-effort (ТЗ 4.7). (коммит `2e02bf9`)
+- S3.6 ✅ — интеграционные тесты API, гонок и персистентности (ТЗ 12): `controller/GameApiIntegrationTest` (10), `service/GameServiceTest` (16). (коммит `0a7f031`)
 
 ## Задачи Sprint 0 (завершён)
 
@@ -46,6 +46,9 @@
 
 ## Последняя завершённая фича
 
+- **F-015 (S3.2–S3.4, S3.6)** — REST-контракт партии (ТЗ 5): `GameController` (start/get/moves/move/ai-move/resign/draw/restart) и `ConfigController` (`GET /api/config/llm-models`); DTO — records + Jakarta Validation, доска компактными токенами, null-поля не сериализуются; единый формат ошибок (`ApiErrorCode`/`GlobalExceptionHandler`) с кодами `GAME_NOT_FOUND`/`NOT_YOUR_TURN`/`INVALID_MOVE`/`STALE_STATE`/`GAME_FINISHED`/`AI_BUSY`/`VALIDATION_ERROR` (+`INTERNAL_ERROR`); `GameService` — per-game lock, `clientMoveNumber` → `STALE_STATE`, повторный `ai-move` во время счёта → `AI_BUSY`, ход ИИ с историей повторений как есть (контракт R-1) и детерминированным fallback-комментарием (`commentSource=FALLBACK`); `AiSettingsFactory` (пресеты из env + `CUSTOM`), `LlmModelCatalog` (allowlist). Тесты: `GameApiIntegrationTest` (10, полный цикл + ошибки + автосохранение), `GameServiceTest` (16, вкл. `AI_BUSY` из другого потока), `AiSettingsFactoryTest` (5); `./mvnw test` — **161/161** (ADR-0015, ADR-0016).
+- **F-014 (S3.5)** — персистентность (ТЗ 4.7): Flyway `V2__drop_items` (удалён демо-`items`, ADR-0009/R-6), `V3__create_tournament`, `V4__create_llm_comments`; сущность `Tournament` + `TournamentRepository`; `TournamentRecorder` — автосохранение результата при завершении партии best-effort (сбой БД логируется, партию не ломает), идемпотентно (флаг сессии + `UNIQUE(game_id)`); IT находят строку после сдачи/ничьей (ADR-0017).
+- **F-013 (S3.1)** — реестр партий (ТЗ 4.2): `GameRegistry` (`ConcurrentHashMap`, TTL-вытеснение, `find` продлевает активность), `GameSession` (состояние + настройки + `ReentrantLock` + флаг `aiThinking` + таймстампы), фоновая задача `GameSessionCleanup`; движок — `GameEndReason`, `GameStatus.isTerminal()`, `GameState.endReason()`/`addComment()`; конфигурация `game`/`ai`/`llm` через `@ConfigurationProperties`, env `AI_PRESET_*`/`GAME_TTL_MINUTES`/`AI_TT_CAPACITY` (R-3/R-4); тесты `GameRegistryTest` (6, вкл. TTL с управляемыми часами), `GameEndReasonTest` (5); `./mvnw test` — **132/132**.
 - **F-012 (ревью S0–S2)** — исправление R-1: двойной учёт корневой позиции при обрезке ничьей в поиске (`AlphaBetaSearch`); контракт `positionRepetitions`/`pathPositions` уточнён; регрессионный тест `rootPositionIsNotCountedTwiceForRepetitionPruning` (до фикса падал, `−149` vs `−141`); `./mvnw test` — **121/121**; отчёт `docs/memory/REVIEW-sprint-0-2.md`, остальные замечания R-2…R-7 → бэклог B4 (коммит `0cd8ebb`).
 - **F-011 (S2.5)** — эталонные позиции и бенчмарк ИИ (ТЗ 12, DoD Sprint 2): `AiReferencePositionsTest` — двойной бой с превращением (максимум материала), отказ от ловушечного приземления дамки под бой (+300 против 0), превращение у края, бенчмарки MEDIUM/HARD на начальной позиции (elapsed ≤ бюджет + 500 мс, валидный ход); первоначальная «фирка» отвергнута как некорректная эталонная позиция (имелся немедленный бой); `./mvnw test` — 120/120. **Sprint 2 завершён: цель «играющий ИИ в рамках бюджета времени» достигнута** (коммит `33b64c1`).
 - **F-010 (S2.4)** — обрезка ничьих внутри поиска (ТЗ 6/3.6): в `AlphaBetaSearch.negamax` — троекратное повторение (история партии + вхождения вдоль ветви ≥ 3) и «30 полуходов только дамками без боя» (общая с движком `GameState.KING_ONLY_DRAW_HALF_MOVES`) → оценка 0 перед оценкой/TT; путь откатывается в finally; ничья-узлы не пишутся в TT; общий ключ `Board.positionKey(Color)` (GameState делегирует); тесты: выбор ничьи по повторению поверх проигрышных линий, ничья по счётчику дамок, `./mvnw test` — 115/115 (коммит `d0bec33`).
