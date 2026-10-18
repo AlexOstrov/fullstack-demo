@@ -39,3 +39,26 @@
 - **Контекст:** рабочий каркас использует Spring Boot 4.1.1; правило в `AGENTS.md` упоминало 3.x.
 - **Решение:** переиспользуем существующий каркас; правило `AGENTS.md` обновлено на «актуальный Spring Boot 4.x (4.1.1)».
 - **Следствия:** Java 21, `jakarta.*`, Spring Data JPA, Flyway, драйвер PostgreSQL — из каркаса.
+
+## ADR-0006. Backend: `src` — единственный source root, `application.yml` — единственный конфиг
+
+- **Дата:** 2026-10-18 (Sprint 0, S0.1)
+- **Контекст:** в каркасе лежали дубли Java-файлов вне `src` (`config/CordConfig.java`, `controller/`, `dto/`, `repository/`) и два конфига (`application.properties` + `application.yml`).
+- **Решение:** удалены все дубли вне `src` (содержимое совпадало с `src`); `application.properties` удалён, его единственное содержимое (`spring.application.name`) уже было в `application.yml`.
+- **Альтернативы:** оставить оба конфига (отклонено — неявный приоритет и риск рассинхрона).
+- **Следствия:** вся конфигурация backend — в `backend/src/main/resources/application.yml`; секреты и локальные переопределения — только через переменные окружения (см. RUNBOOK).
+
+## ADR-0007. Frontend: нативный `fetch` вместо axios
+
+- **Дата:** 2026-10-18 (Sprint 0, S0.2)
+- **Контекст:** каркас использовал `axios` только для демо-`items`; ТЗ (раздел 8.5) требует нативный `fetch` с типизированной обёрткой «без лишних зависимостей».
+- **Решение:** `axios` удалён из зависимостей вместе с демо-интерфейсом; API-вызовы будут идти через типизированную обёртку над `fetch`.
+- **Следствия:** обёртка над `fetch` создаётся при подключении API-интеграции (Sprint 3+); у frontend одна рантайм-зависимость — React.
+
+## ADR-0008. Тестовая инфраструктура: JUnit 5 против реального `db`, Vitest + RTL + jsdom
+
+- **Дата:** 2026-10-18 (Sprint 0, S0.5)
+- **Контекст:** ТЗ (раздел 14, Sprint 0 п.5) требует настроить тесты (JUnit, Vitest/RTL) и линтеры.
+- **Решение:** backend — JUnit 5: `@SpringBootTest` (контекст + реальный `db` из docker) и чистые unit-тесты; frontend — Vitest 5 + React Testing Library + jsdom, отдельный `vitest.config.ts`, setup-файл `src/test/setup.ts`; линтер — oxlint (уже был).
+- **Альтернативы:** Testcontainers (отклонено — избыточно для MVP, `docker compose up -d db` уже поднимает БД); H2 вместо PostgreSQL (отклонено — тесты должны видеть реальную схему Flyway).
+- **Следствия:** тесты backend требуют запущенного `db` (см. RUNBOOK); `npm run build` типизирует и тесты (`tsc -b` включает `src`).

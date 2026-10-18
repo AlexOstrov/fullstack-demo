@@ -38,6 +38,22 @@ cd backend
 ./mvnw spring-boot:run "-Dspring-boot.run.jvmArguments=-Xmx1536m -XX:MaxMetaspaceSize=512m"
 ```
 
+Альтернатива — jar (для быстрых smoke-проверок):
+
+```powershell
+cd backend
+./mvnw -DskipTests package
+java -jar target\backend-0.0.1-SNAPSHOT.jar
+```
+
+Smoke-проверка и остановка:
+
+```powershell
+(Invoke-WebRequest http://localhost:8080/api/items -UseBasicParsing).StatusCode   # 200
+Get-NetTCPConnection -LocalPort 8080 -State Listen |
+  ForEach-Object { Stop-Process -Id $_.OwningProcess }
+```
+
 ## Frontend (Vite, порт 5173)
 
 ```powershell
@@ -45,18 +61,39 @@ cd frontend
 npm run dev
 ```
 
-## Docker (db + backend + frontend + llm-service)
+Smoke-проверка (вторая строка проверяет прокси `/api` на backend):
+
+```powershell
+(Invoke-WebRequest http://localhost:5173/ -UseBasicParsing).StatusCode           # 200
+(Invoke-WebRequest http://localhost:5173/api/items -UseBasicParsing).StatusCode  # 200 при запущенном backend
+Get-NetTCPConnection -LocalPort 5173 -State Listen |
+  ForEach-Object { Stop-Process -Id $_.OwningProcess }
+```
+
+## Docker
+
+Сейчас в `docker-compose.yml` есть **только сервис `db`** (остальные — в Sprint 7):
 
 ```powershell
 cd D:\projects\fullstack-demo
-docker compose up -d
+docker compose up -d db          # поднять БД
+docker compose ps                # статус/healthcheck
+docker compose logs -d db        # логи
 ```
 
-## Тесты
+## Тесты и линтеры
 
 ```powershell
+# backend: JUnit 5 — требует запущенного db (docker compose up -d db)
 cd backend ; ./mvnw test
-cd frontend ; npm test
+
+# frontend: Vitest + RTL
+cd frontend ; npm test          # однократно
+cd frontend ; npm run test:watch
+
+# линт и сборка
+cd frontend ; npm run lint      # oxlint
+cd frontend ; npm run build     # tsc -b && vite build (типизирует и тесты)
 ```
 
 ## Переменные окружения
