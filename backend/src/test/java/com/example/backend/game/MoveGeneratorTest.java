@@ -178,6 +178,71 @@ class MoveGeneratorTest {
         assertTrue(moves.stream().allMatch(m -> m.type() == MoveType.NORMAL));
     }
 
+    // --- Правило большинства и превращение (ТЗ 3.4–3.5) ---
+
+    @Test
+    void majorityRulePrefersLongestSeries() {
+        Board board = Board.empty();
+        // серия на2: (6,5)→(4,7) через (5,6), затем (2,5) через (3,6)
+        board.place(6, 5, Piece.WHITE_MAN);
+        board.place(5, 6, Piece.BLACK_MAN);
+        board.place(3, 6, Piece.BLACK_MAN);
+        // взятие только на1: (4,1)→(6,3) через (5,2)
+        board.place(4, 1, Piece.WHITE_MAN);
+        board.place(5, 2, Piece.BLACK_MAN);
+
+        List<Move> moves = MoveGenerator.generateMoves(board, Color.WHITE);
+
+        assertEquals(1, moves.size(), "меньшее взятие запрещено (ТЗ 3.4)");
+        assertEquals(List.of(new Cell(6, 5), new Cell(4, 7), new Cell(2, 5)), moves.get(0).path());
+    }
+
+    @Test
+    void majorityRuleKeepsAllEqualLongestSeries() {
+        Board board = Board.empty();
+        // одна шашка с двумя одинаковыми по длине ветками взятий
+        board.place(4, 3, Piece.WHITE_MAN);
+        board.place(3, 2, Piece.BLACK_MAN); // ветка: (4,3)→(2,1)
+        board.place(3, 4, Piece.BLACK_MAN); // ветка: (4,3)→(2,5)
+
+        List<Move> moves = MoveGenerator.generateMoves(board, Color.WHITE);
+
+        assertEquals(2, moves.size(), "обе ветки с максимальным числом взятий допустимы");
+        assertTrue(moves.stream().allMatch(m -> m.path().size() == 2));
+    }
+
+    @Test
+    void majorityRuleAppliesAcrossBranchesOfSamePiece() {
+        Board board = Board.empty();
+        board.place(4, 3, Piece.WHITE_MAN);
+        board.place(3, 2, Piece.BLACK_MAN); // ветка «направо» — взятие на1, конец серии
+        board.place(3, 4, Piece.BLACK_MAN); // ветка «влево» — дальше вторая жертва
+        board.place(1, 6, Piece.BLACK_MAN);
+
+        List<Move> moves = MoveGenerator.generateMoves(board, Color.WHITE);
+
+        assertEquals(1, moves.size(), "короткая ветка одной шашки отсекается");
+        assertEquals(List.of(new Cell(4, 3), new Cell(2, 5), new Cell(0, 7)), moves.get(0).path());
+        assertEquals(MoveType.PROMOTION, moves.get(0).type(), "приземление на row 0 — превращение в бою");
+    }
+
+    @Test
+    void simpleMoveToPromotionRowHasPromotionType() {
+        Board whiteBoard = Board.empty();
+        whiteBoard.place(1, 2, Piece.WHITE_MAN);
+        List<Move> whiteMoves = MoveGenerator.generateMoves(whiteBoard, Color.WHITE);
+        assertEquals(2, whiteMoves.size());
+        assertTrue(whiteMoves.stream().allMatch(m -> m.type() == MoveType.PROMOTION),
+                "ход белой на row 0 — превращение (ТЗ 3.5)");
+
+        Board blackBoard = Board.empty();
+        blackBoard.place(6, 3, Piece.BLACK_MAN);
+        List<Move> blackMoves = MoveGenerator.generateMoves(blackBoard, Color.BLACK);
+        assertEquals(2, blackMoves.size());
+        assertTrue(blackMoves.stream().allMatch(m -> m.type() == MoveType.PROMOTION),
+                "ход чёрной на row 7 — превращение (ТЗ 3.5)");
+    }
+
     // --- Вырожденные случаи ---
 
     @Test

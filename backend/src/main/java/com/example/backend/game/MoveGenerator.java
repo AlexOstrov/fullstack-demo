@@ -11,8 +11,9 @@ import java.util.List;
  *   <li>простая шашка ходит по диагонали вперёд на одну клетку, бьёт вперёд и назад (3.2);</li>
  *   <li>дамка ходит на любое количество свободных клеток, бьёт через ровно одну
  *       соперника с приземлением на любую свободную клетку до следующей занятой (3.3);</li>
- *   <li>взятие обязательное: при наличии взятий простые ходы не генерируются (3.4);
- *       фильтр правила большинства применяется отдельно (S1.3);</li>
+ *   <li>взятие обязательное: при наличии взятий простые ходы не генерируются (3.4);</li>
+ *   <li>правило большинства: из всех взятий допустимы только те, что берут максимальное
+ *       число шашек (3.4) — см. {@link #generateMaxCaptures};</li>
  *   <li>взятая шашка снимается с доски по мере прыжка — серия идёт до упора (3.4);</li>
  *   <li>превращение происходит немедленно и бой продолжается как дамкой (3.5).</li>
  * </ul>
@@ -22,9 +23,9 @@ public final class MoveGenerator {
     private MoveGenerator() {
     }
 
-    /** Все допустимые ходы игрока: при наличии взятий — только взятия. */
+    /** Все допустимые ходы игрока: при наличии взятий — только взятия (с учётом правила большинства). */
     public static List<Move> generateMoves(Board board, Color player) {
-        List<Move> captures = generateCaptures(board, player);
+        List<Move> captures = generateMaxCaptures(board, player);
         if (!captures.isEmpty()) {
             return captures;
         }
@@ -33,6 +34,21 @@ public final class MoveGenerator {
 
     public static boolean hasCaptures(Board board, Color player) {
         return !generateCaptures(board, player).isEmpty();
+    }
+
+    /** Взятия, отфильтрованные правилом большинства (ТЗ 3.4): остаются только серии с максимальным числом взятий. */
+    public static List<Move> generateMaxCaptures(Board board, Color player) {
+        List<Move> captures = generateCaptures(board, player);
+        if (captures.isEmpty()) {
+            return captures;
+        }
+        int maxLength = captures.stream()
+                .mapToInt(move -> move.path().size())
+                .max()
+                .orElse(0);
+        return captures.stream()
+                .filter(move -> move.path().size() == maxLength)
+                .toList();
     }
 
     /** Простые ходы (без взятий): путь из двух клеток. */
@@ -79,7 +95,10 @@ public final class MoveGenerator {
         for (int dc = -1; dc <= 1; dc += 2) {
             Cell to = new Cell(from.row() + forward, from.col() + dc);
             if (Board.inBounds(to.row(), to.col()) && board.at(to.row(), to.col()).isEmpty()) {
-                moves.add(new Move(List.of(from, to), MoveType.NORMAL));
+                MoveType type = isPromotionRow(player, to.row())
+                        ? MoveType.PROMOTION // ход с превращением без боя (ТЗ 3.5)
+                        : MoveType.NORMAL;
+                moves.add(new Move(List.of(from, to), type));
             }
         }
     }
