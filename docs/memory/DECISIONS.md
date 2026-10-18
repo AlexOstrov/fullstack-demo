@@ -62,3 +62,17 @@
 - **Решение:** backend — JUnit 5: `@SpringBootTest` (контекст + реальный `db` из docker) и чистые unit-тесты; frontend — Vitest 5 + React Testing Library + jsdom, отдельный `vitest.config.ts`, setup-файл `src/test/setup.ts`; линтер — oxlint (уже был).
 - **Альтернативы:** Testcontainers (отклонено — избыточно для MVP, `docker compose up -d db` уже поднимает БД); H2 вместо PostgreSQL (отклонено — тесты должны видеть реальную схему Flyway).
 - **Следствия:** тесты backend требуют запущенного `db` (см. RUNBOOK); `npm run build` типизирует и тесты (`tsc -b` включает `src`).
+
+## ADR-0009. Игровое ядро — пакет `com.example.backend.game`
+
+- **Дата:** 2026-10-18 (Sprint 1, S1.1)
+- **Контекст:** в каркасе уже есть демо-код `items` (controller/dto/repository); движок правил должен жить отдельно и не зависеть от него.
+- **Решение:** весь rules engine — в пакете `com.example.backend.game` (`Board`, `Piece`, `GameState`, ...); демо-`items` остаются до внедрения игрового API (Sprint 3) и будут удалены при рефакторинге `ItemController`.
+- **Следствия:** ядро — чистая Java без Spring-зависимостей (тестируется как unit-тесты); API/персистентность подключаются отдельными слоями поверх.
+
+## ADR-0010. Push на GitHub — PAT из `.secrets` через локальный credential helper
+
+- **Дата:** 2026-10-18 (Sprint 1)
+- **Контекст:** нужно, чтобы аутентификация `git push` шла именно по PAT из `.secrets`, а не через сохранённые ранее креды Git Credential Manager (системный helper `manager`).
+- **Решение:** в `.git/config` репозитория записано: `credential.helper = ""` (сброс системного `manager` при чтении) и `credential.helper = !f() {...}` — скрипт выдаёт `username=AlexOstrov` и `password` = значение `token:` из `D:/projects/fullstack-demo/.secrets`.
+- **Следствия:** helper действует только для этого репозитория; `.secrets*` не попадает в git (`.gitignore`); значение helper записывалось через `git config --local --add` — прямая raw-запись в `.git/config` git-парсер обрезает на первой `;` (нужно экранирование кавычками, которое git делает сам при `--add`).

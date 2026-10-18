@@ -96,6 +96,27 @@ cd frontend ; npm run lint      # oxlint
 cd frontend ; npm run build     # tsc -b && vite build (типизирует и тесты)
 ```
 
+## Push (git → GitHub)
+
+```powershell
+git push origin main
+```
+
+Аутентификация идёт **по PAT из `.secrets`** через локальный credential helper (записан в `.git/config` репозитория, см. ADR-0010):
+
+```powershell
+# посмотреть helper'ы с указанием источника (нужны: пустая строка-сброс и !f()-скрипт из .git/config)
+git config --show-origin --get-all credential.helper
+
+# проверить выдачу кредов (пароль не показывать в логи!)
+$out = "protocol=https`nhost=github.com`n`n" | git credential fill
+($out | Select-String '^username=').Line
+```
+
+- Системный Git Credential Manager (`manager`) сброшен пустым значением helper в local-конфиге — в цепочке остаётся только скрипт из `.secrets`.
+- Файл `.secrets*` в git не попадает (`.gitignore`).
+- Примечание: helper записывать через `git config --local --add credential.helper '!f() ...'` — прямая запись строки в `.git/config` обрезается git-парсером на первой `;`.
+
 ## Переменные окружения
 
 - **БД:** `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
