@@ -82,6 +82,9 @@ public final class MoveValidator {
             throw new InvalidMoveException("ход должен содержать хотя бы две клетки");
         }
         for (Cell cell : path) {
+            if (cell == null) {
+                throw new InvalidMoveException("путь содержит пустую клетку");
+            }
             if (!Board.inBounds(cell.row(), cell.col())) {
                 throw new InvalidMoveException(
                         "клетка пути вне доски: row=" + cell.row() + ", col=" + cell.col());

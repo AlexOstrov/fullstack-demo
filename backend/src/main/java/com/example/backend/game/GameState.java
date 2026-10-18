@@ -24,6 +24,7 @@ public final class GameState {
 
     private Color currentPlayer;
     private GameStatus status;
+    private GameEndReason endReason;
     private long moveNumber;
     private Move lastMove;
     private final List<Move> history = new ArrayList<>();
@@ -39,6 +40,7 @@ public final class GameState {
         this.aiColor = humanColor.opposite();
         this.currentPlayer = Color.WHITE; // белые ходят первыми (ТЗ 3.1)
         this.status = GameStatus.IN_PROGRESS;
+        this.endReason = null;
         this.moveNumber = 0;
         this.lastMove = null;
         this.noCaptureKingMoves = 0;
@@ -80,6 +82,13 @@ public final class GameState {
         return status;
     }
 
+    /**
+     * Причина завершения партии (ТЗ 4.7); {@code null}, пока партия в статусе {@code IN_PROGRESS}.
+     */
+    public GameEndReason endReason() {
+        return endReason;
+    }
+
     public long moveNumber() {
         return moveNumber;
     }
@@ -95,6 +104,11 @@ public final class GameState {
 
     public List<LlmComment> comments() {
         return Collections.unmodifiableList(comments);
+    }
+
+    /** Добавить комментарий LLM к ходу ИИ (ТЗ 4.1); комментарии живут только в памяти. */
+    public void addComment(LlmComment comment) {
+        comments.add(Objects.requireNonNull(comment, "comment"));
     }
 
     /** Таблица повторений позиций (снимок). */
@@ -149,6 +163,7 @@ public final class GameState {
     public void resign(Color player) {
         checkInProgress("сдаться");
         status = player == Color.WHITE ? GameStatus.BLACK_WON : GameStatus.WHITE_WON;
+        endReason = GameEndReason.RESIGN;
         version++;
     }
 
@@ -156,6 +171,7 @@ public final class GameState {
     public void drawByAgreement() {
         checkInProgress("зафиксировать ничью");
         status = GameStatus.DRAW;
+        endReason = GameEndReason.DRAW_AGREEMENT;
         version++;
     }
 
@@ -175,10 +191,13 @@ public final class GameState {
     private void checkGameEnd() {
         if (MoveValidator.analyze(board, currentPlayer).moves().isEmpty()) {
             status = currentPlayer == Color.WHITE ? GameStatus.BLACK_WON : GameStatus.WHITE_WON;
+            endReason = GameEndReason.NO_MOVES;
         } else if (positionRepetitions.getOrDefault(positionKey(), 0) >= 3) {
             status = GameStatus.DRAW; // троекратное повторение
+            endReason = GameEndReason.DRAW_REPETITION;
         } else if (noCaptureKingMoves >= KING_ONLY_DRAW_HALF_MOVES) {
             status = GameStatus.DRAW; // 15 ходов каждого игрока только дамками
+            endReason = GameEndReason.DRAW_KINGS;
         }
     }
 

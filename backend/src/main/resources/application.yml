@@ -25,6 +25,33 @@ spring:
 server:
   port: 8080
 
+game:
+  ttl-minutes: ${GAME_TTL_MINUTES:60}
+  cleanup-interval-ms: ${GAME_CLEANUP_INTERVAL_MS:300000}
+
+ai:
+  tt-capacity: ${AI_TT_CAPACITY:65536}
+  preset:
+    easy:
+      depth: ${AI_PRESET_EASY_DEPTH:2}
+      time-budget-ms: ${AI_PRESET_EASY_TIME_BUDGET_MS:500}
+    medium:
+      depth: ${AI_PRESET_MEDIUM_DEPTH:4}
+      time-budget-ms: ${AI_PRESET_MEDIUM_TIME_BUDGET_MS:1500}
+    hard:
+      depth: ${AI_PRESET_HARD_DEPTH:6}
+      time-budget-ms: ${AI_PRESET_HARD_TIME_BUDGET_MS:3000}
+
+llm:
+  base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+  model: ${LLM_MODEL:qwen2.5:7b-instruct}
+  allowed-models: ${LLM_ALLOWED_MODELS:qwen2.5:7b-instruct,qwen2.5:3b-instruct,qwen3:4b,qwen3:8b}
+  timeout-ms: ${LLM_TIMEOUT_MS:8000}
+  max-retries: ${LLM_MAX_RETRIES:1}
+  temperature: ${LLM_TEMPERATURE:0.7}
+  num-ctx: ${LLM_NUM_CTX:2048}
+  enabled: ${LLM_ENABLED:true}
+
 logging:
   level:
     org.hibernate.SQL: debug
