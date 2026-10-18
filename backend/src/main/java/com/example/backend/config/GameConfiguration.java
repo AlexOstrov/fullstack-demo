@@ -1,6 +1,7 @@
 package com.example.backend.config;
 
 import com.example.backend.game.ai.AlphaBetaSearch;
+import com.example.backend.game.ai.PositionEvaluator;
 import com.example.backend.session.GameRegistry;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -35,5 +36,11 @@ public class GameConfiguration {
     @Bean
     public AlphaBetaSearch alphaBetaSearch() {
         return new AlphaBetaSearch();
+    }
+
+    /** Статическая оценка позиции — используется и поиском, и решением ИИ о ничьей (ТЗ 5, 6). */
+    @Bean
+    public PositionEvaluator positionEvaluator() {
+        return new PositionEvaluator();
     }
 }

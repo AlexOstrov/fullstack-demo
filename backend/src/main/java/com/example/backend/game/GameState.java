@@ -201,8 +201,12 @@ public final class GameState {
         }
     }
 
-    /** Состояние из произвольной позиции — для тестов правил (S1.4). */
-    static GameState ofPosition(Board board, Color humanColor, Color currentPlayer) {
+    /**
+     * Состояние из произвольной позиции — загрузка/тесты: счётчик повторений
+     * заново инициализируется текущей позицией; партия считается в статусе
+     * {@code IN_PROGRESS} с нулевой историей.
+     */
+    public static GameState ofPosition(Board board, Color humanColor, Color currentPlayer) {
         GameState state = new GameState(UUID.randomUUID(), board, humanColor);
         state.currentPlayer = currentPlayer;
         state.positionRepetitions.clear();
