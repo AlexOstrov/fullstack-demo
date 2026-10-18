@@ -7,18 +7,19 @@
 - ТЗ: **финализировано (v2.4)** — `game-chashki-TZ.md`
 - Спринт: **Sprint 0 — Инициализация (переиспользование каркаса)**, в работе
 - В работе: —
-- Следующая задача: **S0.3 — `docker compose up -d db`, проверка Flyway на `V1__create_items.sql`** (по факту уже выполнено в S0.1 — требуется лишь зафиксировать в памяти; при необходимости повторить)
+- Следующая задача: **S0.4 — актуализировать `docs/memory/{STATE,FEATURES,DECISIONS,RUNBOOK,BACKLOG}.md`, связать с `AGENTS.md`**
 
 ## Задачи Sprint 0
 
 - S0.1 ✅ — backend: чистка дублей вне `src`, слияние конфигов, запуск + подключение к `db`. (коммит `2d6ce68`)
 - S0.2 ✅ — frontend: убрать демо-`items`, добавить заглушку доски. (коммит `b9c262f`)
-- S0.3 — `docker compose up -d db`, проверка Flyway на `V1__create_items.sql`.
+- S0.3 ✅ — `docker compose up -d db`, проверка Flyway на `V1__create_items.sql`. (без кодовых изменений — верификация, см. FEATURES.md)
 - S0.4 — актуализировать `docs/memory/{STATE,FEATURES,DECISIONS,RUNBOOK,BACKLOG}.md`, связать с `AGENTS.md`.
 - S0.5 — тесты/линтеры (JUnit, Vitest/RTL), Conventional Commits.
 
 ## Последняя завершённая фича
 
+- **S0.3** — проверка БД/Flyway: `docker compose up -d db` → `fullstack-db` healthy; штатный запуск против основной БД — `validated 1 migration`, `Schema is up to date`, `GET /api/items` → 200; свежая миграция на чистой БД (временный контейнер `flyway-check`, порт 5433, удалён) — `Empty Schema → v1`, `flyway_schema_history.success = t`, `POST /api/items` → 201. Код не менялся.
 - **S0.2** — frontend-заглушка: `App.tsx` переписан (демо-`items` и `axios` убраны), добавлен `src/components/Board.tsx` — доска 8×8 (CSS Grid, начальная позиция, белые снизу), стили в `App.css`, title/lang в `index.html`; `npm run lint` и `npm run build` — OK (коммит `b9c262f`).
 - **S0.1** — backend-очистка: удалены дубли вне `src` (`config/CordConfig.java`, `controller/`, `dto/`, `repository/`), `application.properties` слит в `application.yml`; запуск подтверждён: Flyway `V1__create_items.sql` применён, `GET/POST /api/items` → HTTP 200/201 (коммит `2d6ce68`).
 
