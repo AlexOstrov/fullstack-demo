@@ -30,8 +30,11 @@ public final class AlphaBetaSearch {
     private static final int MAX_PLIES = 16;
     /** Киллер-ходов на плоскость. */
     private static final int KILLERS_PER_PLY = 2;
+    /** Порог «матового» счёта: ближе к мату, чем любая материальная оценка. */
+    static final int MATE_THRESHOLD = MATE_SCORE - MAX_PLIES;
 
     private final PositionEvaluator evaluator;
+    private final Zobrist zobrist = Zobrist.INSTANCE;
 
     public AlphaBetaSearch() {
         this(new PositionEvaluator());
@@ -60,7 +63,8 @@ public final class AlphaBetaSearch {
         positionRepetitions = positionRepetitions == null ? Map.of() : positionRepetitions;
 
         long startNanos = System.nanoTime();
-        SearchContext context = new SearchContext(startNanos, settings.timeBudgetMs());
+        SearchContext context = new SearchContext(startNanos, settings.timeBudgetMs(),
+                new TranspositionTable(settings.ttCapacity()));
 
         List<Move> rootMoves = MoveGenerator.generateMoves(board, player);
         context.nodes++;
@@ -131,7 +135,31 @@ public final class AlphaBetaSearch {
             return evaluator.evaluate(board, sideToMove);
         }
 
-        Move ttMove = null; // транспозиционная таблица — S2.3
+        // транспозиционная таблица (ТЗ 6): хэш позиции, кэш оценки и лучшего хода
+        long hash = zobrist.hash(board, sideToMove);
+        TranspositionTable.Entry ttEntry = context.tt.probe(hash);
+        Move ttMove = ttEntry != null ? ttEntry.move() : null;
+
+        int alphaOrig = alpha;
+        int betaOrig = beta;
+        if (ttEntry != null && ttEntry.depth() >= depth) {
+            int ttScore = fromTtScore(ttEntry.score(), ply);
+            switch (ttEntry.flag()) {
+                case EXACT -> {
+                    return ttScore;
+                }
+                case LOWER -> {
+                    alpha = Math.max(alpha, ttScore);
+                }
+                case UPPER -> {
+                    beta = Math.min(beta, ttScore);
+                }
+            }
+            if (alpha >= beta) {
+                return ttScore;
+            }
+        }
+
         List<Move> ordered = MoveOrdering.order(board, moves, ttMove,
                 context.killer(ply, 0), context.killer(ply, 1));
 
@@ -156,23 +184,55 @@ public final class AlphaBetaSearch {
                 break;
             }
         }
+
+        // сохранение: граница по результату ветвления (fail-low → UPPER, fail-high → LOWER)
+        TranspositionTable.Flag flag = bestScore <= alphaOrig
+                ? TranspositionTable.Flag.UPPER
+                : bestScore >= betaOrig ? TranspositionTable.Flag.LOWER : TranspositionTable.Flag.EXACT;
+        context.tt.store(hash, depth, toTtScore(bestScore, ply), flag, bestMove);
         return bestScore;
+    }
+
+    /**
+     * Поправка «матовых» счётов при записи в TT: счёт зависит от плоскости
+     * (быстрая победа лучше поздней) — приводится к глубине 0.
+     */
+    private static int toTtScore(int score, int ply) {
+        if (score > MATE_THRESHOLD) {
+            return score + ply;
+        }
+        if (score < -MATE_THRESHOLD) {
+            return score - ply;
+        }
+        return score;
+    }
+
+    private static int fromTtScore(int score, int ply) {
+        if (score > MATE_THRESHOLD) {
+            return score - ply;
+        }
+        if (score < -MATE_THRESHOLD) {
+            return score + ply;
+        }
+        return score;
     }
 
     private static long elapsedMs(long startNanos) {
         return (System.nanoTime() - startNanos) / 1_000_000;
     }
 
-    /** Состояние одного поиска: дедлайн, счётчик узлов, киллер-ходы, флаг таймаута. */
+    /** Состояние одного поиска: дедлайн, счётчик узлов, TT, киллер-ходы, флаг таймаута. */
     private static final class SearchContext {
 
         final long deadlineNanos;
+        final TranspositionTable tt;
         final Move[] killers = new Move[MAX_PLIES * KILLERS_PER_PLY];
         long nodes;
         boolean timeUp;
 
-        SearchContext(long startNanos, long timeBudgetMs) {
+        SearchContext(long startNanos, long timeBudgetMs, TranspositionTable tt) {
             this.deadlineNanos = startNanos + timeBudgetMs * 1_000_000;
+            this.tt = tt;
         }
 
         Move killer(int ply, int slot) {

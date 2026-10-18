@@ -86,6 +86,20 @@ class AlphaBetaSearchTest {
     }
 
     @Test
+    void smallTranspositionTableDoesNotBreakChoice() {
+        Board board = Board.empty();
+        board.place(3, 2, Piece.WHITE_MAN);
+        board.place(2, 3, Piece.BLACK_MAN);
+        board.place(4, 3, Piece.BLACK_KING);
+        AiSettings settings = new AiSettings(2, AiSettings.MIN_TIME_BUDGET_MS, 64);
+
+        AiResult result = search.findBestMove(board, Color.WHITE, settings);
+
+        assertEquals(List.of(new Cell(3, 2), new Cell(5, 4)), result.move().path(),
+                "тактический выбор не зависит от размера TT");
+    }
+
+    @Test
     void staysWithinTimeBudget() {
         Board board = Board.initialPosition();
         AiSettings settings = new AiSettings(AiSettings.MAX_DEPTH, 500,
