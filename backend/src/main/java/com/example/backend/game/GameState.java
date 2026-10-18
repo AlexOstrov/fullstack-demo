@@ -123,9 +123,7 @@ public final class GameState {
      * @throws InvalidMoveException если партия завершена или ход недопустим
      */
     public void applyMove(List<Cell> path) {
-        if (status != GameStatus.IN_PROGRESS) {
-            throw new InvalidMoveException("партия уже завершена (статус " + status + ")");
-        }
+        checkInProgress("ходить");
 
         Move move = MoveValidator.validate(board, currentPlayer, path);
         Piece startPiece = board.at(path.get(0).row(), path.get(0).col());
@@ -142,6 +140,30 @@ public final class GameState {
         currentPlayer = currentPlayer.opposite();
         positionRepetitions.merge(positionKey(), 1, Integer::sum);
         checkGameEnd();
+    }
+
+    /**
+     * Сдача игрока (ТЗ 3.6): фиксирует поражение сдавшегося.
+     * Учёт предложений и ответов на ничью — сервисный слой API (Sprint 3).
+     */
+    public void resign(Color player) {
+        checkInProgress("сдаться");
+        status = player == Color.WHITE ? GameStatus.BLACK_WON : GameStatus.WHITE_WON;
+        version++;
+    }
+
+    /** Ничья по согласию (ТЗ 3.6) — когда согласие получено от обоих игроков. */
+    public void drawByAgreement() {
+        checkInProgress("зафиксировать ничью");
+        status = GameStatus.DRAW;
+        version++;
+    }
+
+    private void checkInProgress(String action) {
+        if (status != GameStatus.IN_PROGRESS) {
+            throw new InvalidMoveException(
+                    "нельзя " + action + ": партия уже завершена (статус " + status + ")");
+        }
     }
 
     /**

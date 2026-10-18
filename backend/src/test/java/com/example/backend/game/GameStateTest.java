@@ -276,4 +276,63 @@ class GameStateTest {
         assertEquals(30, game.noCaptureKingMoves());
         assertEquals(GameStatus.DRAW, game.status(), "30 полуходов подряд только дамками (ТЗ 3.6)");
     }
+
+    // --- Сдача и ничья по согласию (ТЗ 3.6); учёт предложений — API-слой (Sprint 3) ---
+
+    @Test
+    void resignFixesDefeatOfResigningPlayer() {
+        GameState game = GameState.newGame(Color.WHITE);
+        long versionBefore = game.version();
+
+        game.resign(Color.WHITE);
+
+        assertEquals(GameStatus.BLACK_WON, game.status(), "сдавшийся проигрывает (ТЗ 3.6)");
+        assertTrue(game.version() > versionBefore, "смена статуса увеличивает версию состояния");
+
+        InvalidMoveException error = assertThrows(InvalidMoveException.class,
+                () -> game.applyMove(List.of(new Cell(5, 0), new Cell(4, 1))));
+        assertTrue(error.getMessage().contains("завершена"), "ход после сдачи запрещён");
+    }
+
+    @Test
+    void drawByAgreementFixesDraw() {
+        GameState game = GameState.newGame(Color.BLACK);
+
+        game.drawByAgreement();
+
+        assertEquals(GameStatus.DRAW, game.status(), "ничья по согласию (ТЗ 3.6)");
+        assertThrows(InvalidMoveException.class, () -> game.resign(Color.WHITE),
+                "после завершения действия невозможны");
+    }
+
+    // --- «Турецкий удар» (ТЗ 12) ---
+
+    @Test
+    void applyMoveTurkishStrikeSeriesReturnsToStartCell() {
+        Board board = Board.empty();
+        board.place(2, 1, Piece.WHITE_MAN);
+        board.place(1, 2, Piece.BLACK_MAN);
+        board.place(1, 4, Piece.BLACK_MAN);
+        board.place(3, 4, Piece.BLACK_MAN);
+        board.place(3, 2, Piece.BLACK_MAN);
+        board.place(3, 0, Piece.WHITE_MAN);
+        board.place(3, 6, Piece.WHITE_MAN);
+        board.place(7, 4, Piece.BLACK_KING); // выжившая дамка: партия продолжается
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+
+        // серия возвращается на исходную клетку (2,1) — «турецкий удар» (ТЗ 3.4)
+        game.applyMove(List.of(new Cell(2, 1), new Cell(0, 3), new Cell(2, 5),
+                new Cell(4, 3), new Cell(2, 1)));
+
+        assertEquals(1, game.board().count(Color.BLACK), "все четыре шашки взяты по мере прыжка, дамка уцелела");
+        assertTrue(game.board().at(1, 2).isEmpty());
+        assertTrue(game.board().at(1, 4).isEmpty());
+        assertTrue(game.board().at(3, 4).isEmpty());
+        assertTrue(game.board().at(3, 2).isEmpty());
+        assertEquals(Piece.WHITE_KING, game.board().at(2, 1),
+                "шашка вернулась на посещённую клетку и превратилась в дамку (ТЗ 3.5)");
+        assertEquals(MoveType.PROMOTION, game.lastMove().type());
+        assertEquals(Color.BLACK, game.currentPlayer());
+        assertEquals(GameStatus.IN_PROGRESS, game.status(), "у чёрных остаются ходы дамками");
+    }
 }

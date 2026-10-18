@@ -243,6 +243,45 @@ class MoveGeneratorTest {
                 "ход чёрной на row 7 — превращение (ТЗ 3.5)");
     }
 
+    // --- Спецправила: «турецкий удар» и блокировка дамки своей (ТЗ 12) ---
+
+    @Test
+    void turkishStrikeAllowsReturningToVisitedCell() {
+        // «Турецкий удар» (русские шашки): серия взятий может вести шашку обратно
+        // на уже посещённую клетку — запрещён только повторный бой одной шашки (ТЗ 3.4).
+        // Заглушки (3,0)/(3,6) сужают зоны приземления дамки после превращения.
+        Board board = Board.empty();
+        board.place(2, 1, Piece.WHITE_MAN);
+        board.place(1, 2, Piece.BLACK_MAN);
+        board.place(1, 4, Piece.BLACK_MAN);
+        board.place(3, 4, Piece.BLACK_MAN);
+        board.place(3, 2, Piece.BLACK_MAN);
+        board.place(3, 0, Piece.WHITE_MAN);
+        board.place(3, 6, Piece.WHITE_MAN);
+
+        List<Move> moves = MoveGenerator.generateMoves(board, Color.WHITE);
+
+        assertEquals(3, moves.size(), "три серии с максимальными 4 взятиями (ТЗ 3.4)");
+        assertTrue(moves.stream().allMatch(m -> m.path().size() == 5),
+                "каждая серия: 5 точек пути = 4 взятия");
+        assertTrue(moves.stream().allMatch(m -> m.type() == MoveType.PROMOTION),
+                "все серии проходят приземление на row 0 — превращение (ТЗ 3.5)");
+        assertTrue(moves.stream().anyMatch(m -> m.path().get(0).equals(new Cell(2, 1))
+                        && m.path().get(4).equals(new Cell(2, 1))),
+                "возврат на посещённую клетку допустим (турецкий удар, ТЗ 3.4)");
+    }
+
+    @Test
+    void kingCannotCaptureWhenFirstPieceAheadIsOwn() {
+        Board board = Board.empty();
+        board.place(4, 1, Piece.WHITE_KING);
+        board.place(2, 3, Piece.WHITE_MAN); // своя первая по диагонали — боя нет
+        board.place(0, 5, Piece.BLACK_MAN);
+
+        assertFalse(MoveGenerator.hasCaptures(board, Color.WHITE),
+                "дамка бьёт только через соперника, своя не пропускает (ТЗ 3.3)");
+    }
+
     // --- Вырожденные случаи ---
 
     @Test
