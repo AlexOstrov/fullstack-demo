@@ -14,6 +14,9 @@ import java.util.UUID;
  */
 public final class GameState {
 
+    /** Порог ничьей «только дамками»: 15 ходов каждого игрока = 30 полуходов (ТЗ 3.6). */
+    private static final int KING_ONLY_DRAW_HALF_MOVES = 30;
+
     private final UUID id;
     private final Board board;
     private final Color humanColor;
@@ -138,24 +141,41 @@ public final class GameState {
         noCaptureKingMoves = kingQuietMove ? noCaptureKingMoves + 1 : 0;
         currentPlayer = currentPlayer.opposite();
         positionRepetitions.merge(positionKey(), 1, Integer::sum);
+        checkGameEnd();
+    }
+
+    /**
+     * Определение конца партии после хода (ТЗ 3.6):
+     * у следующего игрока нет допустимых ходов — он проигрывает;
+     * ничья — троекратное повторение позиции либо 30 полуходов
+     * подряд только дамками без взятий. Сдача и ничья по согласию — API-слой.
+     */
+    private void checkGameEnd() {
+        if (MoveValidator.analyze(board, currentPlayer).moves().isEmpty()) {
+            status = currentPlayer == Color.WHITE ? GameStatus.BLACK_WON : GameStatus.WHITE_WON;
+        } else if (positionRepetitions.getOrDefault(positionKey(), 0) >= 3) {
+            status = GameStatus.DRAW; // троекратное повторение
+        } else if (noCaptureKingMoves >= KING_ONLY_DRAW_HALF_MOVES) {
+            status = GameStatus.DRAW; // 15 ходов каждого игрока только дамками
+        }
     }
 
     /**
      * Проходит путь по клеткам, снимая взятые шашки по мере прыжка (ТЗ 4.5)
      * и превращая шашку немедленно при приземлении на последнюю горизонталь (ТЗ 3.5).
-     * Путь уже проверен валидатором, поэтому каждый прыжок содержит жертву.
+     * Путь уже проверен валидатором: в прыжке первая непустая клетка между
+     * текущей и приземлением — жертва, в тихом ходе промежуток пуст.
      */
     private void walkPath(Move move) {
         List<Cell> path = move.path();
         Piece piece = board.at(path.get(0).row(), path.get(0).col());
-        boolean jumpSeries = isCaptureSeries(move);
 
         for (int i = 1; i < path.size(); i++) {
             Cell from = path.get(i - 1);
             Cell to = path.get(i);
 
-            if (jumpSeries) { // каждый сегмент серии — прыжок через жертву (ТЗ 3.4)
-                Cell victim = findVictim(from, to);
+            Cell victim = findVictimOrSlide(from, to);
+            if (victim != null) {
                 board.remove(victim.row(), victim.col());
             }
 
@@ -169,16 +189,10 @@ public final class GameState {
     }
 
     /**
-     * Ход — серия взятий: каждый сегмент пути — прыжок с жертвой.
-     * Тихий ход (NORMAL, либо PROMOTION из двух клеток) взятий не содержит.
+     * Жертва прыжка: первая непустая клетка строго между from и to
+     * (для шашки — середина); null — если промежуток пуст (тихий ход).
      */
-    private static boolean isCaptureSeries(Move move) {
-        return move.type() == MoveType.CAPTURE
-                || (move.type() == MoveType.PROMOTION && move.path().size() >= 3);
-    }
-
-    /** Жертва прыжка: первая непустая клетка между from и to (для шашки — середина). */
-    private Cell findVictim(Cell from, Cell to) {
+    private Cell findVictimOrSlide(Cell from, Cell to) {
         int rowStep = Integer.signum(to.row() - from.row());
         int colStep = Integer.signum(to.col() - from.col());
         int row = from.row() + rowStep;
@@ -190,7 +204,7 @@ public final class GameState {
             row += rowStep;
             col += colStep;
         }
-        throw new IllegalStateException("в прыжке " + from + " -> " + to + " не найдена жертва");
+        return null;
     }
 
     /** Состояние из произвольной позиции — для тестов правил (S1.4). */

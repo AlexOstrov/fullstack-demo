@@ -195,4 +195,85 @@ class GameStateTest {
         assertEquals(2, game.positionRepetitions().get(initialKey),
                 "троекратное повторение считается по таблице (ТЗ 3.6)");
     }
+
+    // --- Конец партии (ТЗ 3.6) ---
+
+    @Test
+    void gameEndsWhenOpponentHasNoPieces() {
+        Board board = Board.empty();
+        board.place(2, 1, Piece.WHITE_MAN);
+        board.place(1, 2, Piece.BLACK_MAN);
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+
+        game.applyMove(List.of(new Cell(2, 1), new Cell(0, 3))); // взятие с превращением
+
+        assertEquals(0, game.board().count(Color.BLACK));
+        assertEquals(GameStatus.WHITE_WON, game.status(), "нет ходов у соперника — победа (ТЗ 3.6)");
+
+        InvalidMoveException error = assertThrows(InvalidMoveException.class,
+                () -> game.applyMove(List.of(new Cell(0, 3), new Cell(1, 4))));
+        assertTrue(error.getMessage().contains("завершена"), "ход после конца партии запрещён");
+    }
+
+    @Test
+    void gameEndsWhenSideIsCompletelyBlocked() {
+        Board board = Board.empty();
+        board.place(5, 0, Piece.WHITE_MAN);
+        board.place(7, 2, Piece.BLACK_MAN); // на последней горизонтали: ходить некуда
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+
+        game.applyMove(List.of(new Cell(5, 0), new Cell(4, 1)));
+
+        assertEquals(GameStatus.WHITE_WON, game.status(),
+                "полностью заблокированная сторона проигрывает (ТЗ 3.6)");
+    }
+
+    @Test
+    void drawOnThirdRepetitionOfSamePosition() {
+        Board board = Board.empty();
+        board.place(4, 1, Piece.WHITE_KING);
+        board.place(3, 6, Piece.BLACK_KING);
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+        String initialKey = game.positionKey();
+
+        // «туда-обратно» обеими дамками: позиция повторяется каждые два хода
+        for (int i = 0; i < 2; i++) {
+            game.applyMove(List.of(new Cell(4, 1), new Cell(5, 0)));
+            game.applyMove(List.of(new Cell(3, 6), new Cell(2, 7)));
+            assertEquals(GameStatus.IN_PROGRESS, game.status(), "первое повторение ещё не ничья");
+            game.applyMove(List.of(new Cell(5, 0), new Cell(4, 1)));
+            game.applyMove(List.of(new Cell(2, 7), new Cell(3, 6)));
+        }
+
+        assertEquals(3, game.positionRepetitions().get(initialKey));
+        assertEquals(GameStatus.DRAW, game.status(), "троекратное повторение — ничья (ТЗ 3.6)");
+    }
+
+    @Test
+    void drawAfterThirtyKingOnlyHalfMoves() {
+        Board board = Board.empty();
+        board.place(6, 3, Piece.WHITE_KING);
+        board.place(1, 2, Piece.BLACK_KING);
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+
+        // Дамки ходят по истинным циклам на диагоналях, не имеющих общих клеток
+        // и линий: взятий и троекратного повторения (до 30 полуходов) не происходит,
+        // а период комбинированной позиции LCM(4,6)=12 ходов даёт третье повторение
+        // только на 24-м ходе — позже порога ничьей.
+        Cell[] whiteCycle = {new Cell(6, 3), new Cell(7, 4), new Cell(6, 5), new Cell(5, 4)};
+        Cell[] blackCycle = {new Cell(1, 2), new Cell(2, 3), new Cell(3, 4),
+                new Cell(2, 5), new Cell(1, 4), new Cell(0, 3)};
+
+        for (int i = 0; i < 15; i++) {
+            game.applyMove(List.of(whiteCycle[i % 4], whiteCycle[(i + 1) % 4]));
+            game.applyMove(List.of(blackCycle[i % 6], blackCycle[(i + 1) % 6]));
+            if (i < 14) {
+                assertEquals(GameStatus.IN_PROGRESS, game.status(),
+                        "ничьей раньше 30 полуходов только дамками быть не должно");
+            }
+        }
+
+        assertEquals(30, game.noCaptureKingMoves());
+        assertEquals(GameStatus.DRAW, game.status(), "30 полуходов подряд только дамками (ТЗ 3.6)");
+    }
 }
