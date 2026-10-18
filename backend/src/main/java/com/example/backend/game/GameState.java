@@ -128,7 +128,7 @@ public final class GameState {
         Move move = MoveValidator.validate(board, currentPlayer, path);
         Piece startPiece = board.at(path.get(0).row(), path.get(0).col());
 
-        walkPath(move);
+        MoveApplier.applyInPlace(board, move); // снятие жертв по мере прыжка, превращение (ТЗ 3.5, 4.5)
 
         history.add(move);
         lastMove = move;
@@ -180,53 +180,6 @@ public final class GameState {
         } else if (noCaptureKingMoves >= KING_ONLY_DRAW_HALF_MOVES) {
             status = GameStatus.DRAW; // 15 ходов каждого игрока только дамками
         }
-    }
-
-    /**
-     * Проходит путь по клеткам, снимая взятые шашки по мере прыжка (ТЗ 4.5)
-     * и превращая шашку немедленно при приземлении на последнюю горизонталь (ТЗ 3.5).
-     * Путь уже проверен валидатором: в прыжке первая непустая клетка между
-     * текущей и приземлением — жертва, в тихом ходе промежуток пуст.
-     */
-    private void walkPath(Move move) {
-        List<Cell> path = move.path();
-        Piece piece = board.at(path.get(0).row(), path.get(0).col());
-
-        for (int i = 1; i < path.size(); i++) {
-            Cell from = path.get(i - 1);
-            Cell to = path.get(i);
-
-            Cell victim = findVictimOrSlide(from, to);
-            if (victim != null) {
-                board.remove(victim.row(), victim.col());
-            }
-
-            board.remove(from.row(), from.col());
-
-            if (piece.isMan() && piece.color().isPromotionRow(to.row())) {
-                piece = Piece.king(piece.color()); // немедленно при приземлении (ТЗ 3.5)
-            }
-            board.place(to.row(), to.col(), piece);
-        }
-    }
-
-    /**
-     * Жертва прыжка: первая непустая клетка строго между from и to
-     * (для шашки — середина); null — если промежуток пуст (тихий ход).
-     */
-    private Cell findVictimOrSlide(Cell from, Cell to) {
-        int rowStep = Integer.signum(to.row() - from.row());
-        int colStep = Integer.signum(to.col() - from.col());
-        int row = from.row() + rowStep;
-        int col = from.col() + colStep;
-        while (row != to.row() || col != to.col()) {
-            if (!board.at(row, col).isEmpty()) {
-                return new Cell(row, col);
-            }
-            row += rowStep;
-            col += colStep;
-        }
-        return null;
     }
 
     /** Состояние из произвольной позиции — для тестов правил (S1.4). */

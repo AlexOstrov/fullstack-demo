@@ -99,6 +99,15 @@ public final class Board {
         return key.toString();
     }
 
+    /** Независимая копия поля — для поиска минимакса (ТЗ 6). */
+    public Board copy() {
+        Board copy = new Board();
+        for (int row = 0; row < SIZE; row++) {
+            copy.cells[row] = Arrays.copyOf(cells[row], SIZE);
+        }
+        return copy;
+    }
+
     /** Независимая копия поля. */
     public Piece[][] snapshot() {
         Piece[][] copy = new Piece[SIZE][SIZE];
