@@ -5,20 +5,22 @@
 ## Сейчас
 
 - ТЗ: **финализировано (v2.4)** — `game-chashki-TZ.md`
-- Спринт: **Sprint 0 — Инициализация (переиспользование каркаса)**, в работе
+- Спринт: **Sprint 0 — Инициализация (переиспользование каркаса)** — ✅ завершён
 - В работе: —
-- Следующая задача: **S0.4 — актуализировать `docs/memory/{STATE,FEATURES,DECISIONS,RUNBOOK,BACKLOG}.md`, связать с `AGENTS.md`**
+- Следующая задача: **Sprint 0 завершён, следующая задача — S1.1** (Sprint 1 «Ядро игры»: модель `Board`, `Piece`, `GameState` — ТЗ 4.1; см. ТЗ, раздел 14)
 
 ## Задачи Sprint 0
 
 - S0.1 ✅ — backend: чистка дублей вне `src`, слияние конфигов, запуск + подключение к `db`. (коммит `2d6ce68`)
 - S0.2 ✅ — frontend: убрать демо-`items`, добавить заглушку доски. (коммит `b9c262f`)
 - S0.3 ✅ — `docker compose up -d db`, проверка Flyway на `V1__create_items.sql`. (без кодовых изменений — верификация, см. FEATURES.md)
-- S0.4 — актуализировать `docs/memory/{STATE,FEATURES,DECISIONS,RUNBOOK,BACKLOG}.md`, связать с `AGENTS.md`.
-- S0.5 — тесты/линтеры (JUnit, Vitest/RTL), Conventional Commits.
+- S0.4 ✅ — актуализировать `docs/memory/{STATE,FEATURES,DECISIONS,RUNBOOK,BACKLOG}.md`, связать с `AGENTS.md`. (коммит `1632b17` + этот docs-коммит)
+- S0.5 ✅ — тесты/линтеры (JUnit, Vitest/RTL), Conventional Commits. (коммит `5b935f8`)
 
 ## Последняя завершённая фича
 
+- **S0.5** — тесты/линтеры: frontend — Vitest 5 + RTL + jsdom (`vitest.config.ts`, `src/test/setup.ts`, скрипт `npm test`), 8 тестов в `App.test.tsx`/`Board.test.tsx` зелёные, `npm run lint` + `npm run build` OK; backend — `./mvnw test`: 3/3 (в т.ч. новый `ItemDtoTest`), `BUILD SUCCESS`; smoke: frontend 5173 → 200, прокси `/api/items` → 200 (коммит `5b935f8`).
+- **S0.4** — память: `DECISIONS.md` пополнен ADR-0006..0008, `RUNBOOK.md` приведён к факту (compose пока только `db`, smoke-проверки/остановка, тесты и линт), `BACKLOG.md` проверен (B1–B3 `Idea` — актуально), связка с `AGENTS.md` проверена (коммит `1632b17`).
 - **S0.3** — проверка БД/Flyway: `docker compose up -d db` → `fullstack-db` healthy; штатный запуск против основной БД — `validated 1 migration`, `Schema is up to date`, `GET /api/items` → 200; свежая миграция на чистой БД (временный контейнер `flyway-check`, порт 5433, удалён) — `Empty Schema → v1`, `flyway_schema_history.success = t`, `POST /api/items` → 201. Код не менялся.
 - **S0.2** — frontend-заглушка: `App.tsx` переписан (демо-`items` и `axios` убраны), добавлен `src/components/Board.tsx` — доска 8×8 (CSS Grid, начальная позиция, белые снизу), стили в `App.css`, title/lang в `index.html`; `npm run lint` и `npm run build` — OK (коммит `b9c262f`).
 - **S0.1** — backend-очистка: удалены дубли вне `src` (`config/CordConfig.java`, `controller/`, `dto/`, `repository/`), `application.properties` слит в `application.yml`; запуск подтверждён: Flyway `V1__create_items.sql` применён, `GET/POST /api/items` → HTTP 200/201 (коммит `2d6ce68`).
