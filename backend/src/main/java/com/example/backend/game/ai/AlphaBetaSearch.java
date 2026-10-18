@@ -55,6 +55,10 @@ public final class AlphaBetaSearch {
     /**
      * Лучший ход с учётом фактической истории повторений партии
      * и счётчика «дамки без взятий» (обрезка ничьих внутри поиска, S2.4).
+     *
+     * @param positionRepetitions кратность позиций в партии <b>включая текущую</b>
+     *                            (как {@code GameState.positionRepetitions()});
+     *                            корень не дублируется в счётчике пути поиска
      */
     public AiResult findBestMove(Board board, Color player,
                                  Map<String, Integer> positionRepetitions,
@@ -75,8 +79,10 @@ public final class AlphaBetaSearch {
             return new AiResult(null, 0, -MATE_SCORE, context.nodes, elapsedMs(startNanos));
         }
 
-        // корневая позиция — часть истории повторений партии (обрезка ничьих, S2.4)
-        context.pathPositions.merge(board.positionKey(player), 1, Integer::sum);
+        // Корневая позиция НЕ добавляется в pathPositions: её кратность уже учтена
+        // в gameRepetitions (GameState.positionRepetitions включает текущую позицию).
+        // Иначе корень считался бы дважды и линия с возвратом в него оценивалась бы
+        // как ничья на одно повторение раньше реального (исправление ревью 4.1).
 
         Move bestMove = rootMoves.get(0);
         int bestScore = 0;
@@ -255,9 +261,9 @@ public final class AlphaBetaSearch {
 
         final long deadlineNanos;
         final TranspositionTable tt;
-        /** Повторения из фактической истории партии (read-only). */
+        /** Повторения из фактической истории партии (read-only), включая корень. */
         final Map<String, Integer> gameRepetitions;
-        /** Повторения вдоль текущей ветви поиска (добавление/откат по возврату). */
+        /** Повторения вдоль ветви поиска ниже корня (добавление/откат по возврату). */
         final Map<String, Integer> pathPositions = new HashMap<>();
         final Move[] killers = new Move[MAX_PLIES * KILLERS_PER_PLY];
         long nodes;

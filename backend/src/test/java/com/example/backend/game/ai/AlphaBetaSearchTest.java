@@ -125,6 +125,34 @@ class AlphaBetaSearchTest {
         assertEquals(0, result.score(), "ничья внутри поиска оценивается в 0");
     }
 
+    /**
+     * Регрессия ревью (п. 4.1): корневая позиция не должна учитываться дважды.
+     * Её кратность уже содержится в истории партии
+     * ({@code GameState.positionRepetitions} включает текущую позицию), поэтому
+     * указание корня в переданной истории со счётчиком 1 не должно менять
+     * результат поиска: возврат в корень один раз — это ещё не троекратное
+     * повторение (ТЗ 3.6). До исправления корень добавлялся и в счётчик пути
+     * поиска, из-за чего такие линии ошибочно оценивались как ничья (0).
+     */
+    @Test
+    void rootPositionIsNotCountedTwiceForRepetitionPruning() {
+        Board board = Board.empty();
+        board.place(0, 1, Piece.WHITE_KING);
+        board.place(4, 3, Piece.BLACK_KING);
+        board.place(5, 0, Piece.BLACK_MAN);
+        String rootKey = board.positionKey(Color.WHITE);
+        // глубина 4: возврат в корень возможен только один раз (иначе трёхкратность
+        // недостижима в пределах горизонта), поэтому обе истории эквивалентны
+        AiSettings settings = new AiSettings(4, AiSettings.MIN_TIME_BUDGET_MS, 64);
+
+        AiResult withRoot = search.findBestMove(board, Color.WHITE, Map.of(rootKey, 1), 0, settings);
+        AiResult withoutRoot = search.findBestMove(board, Color.WHITE, Map.of(), 0, settings);
+
+        assertEquals(withoutRoot.score(), withRoot.score(),
+                "корень, указанный в истории один раз, не должен трактоваться как ничья");
+        assertEquals(withoutRoot.move(), withRoot.move());
+    }
+
     @Test
     void kingOnlyCounterForcesDrawInsideSearch() {
         Board board = Board.empty();
