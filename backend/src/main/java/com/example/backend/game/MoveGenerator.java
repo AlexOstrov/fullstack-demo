@@ -95,7 +95,7 @@ public final class MoveGenerator {
         for (int dc = -1; dc <= 1; dc += 2) {
             Cell to = new Cell(from.row() + forward, from.col() + dc);
             if (Board.inBounds(to.row(), to.col()) && board.at(to.row(), to.col()).isEmpty()) {
-                MoveType type = isPromotionRow(player, to.row())
+                MoveType type = player.isPromotionRow(to.row())
                         ? MoveType.PROMOTION // ход с превращением без боя (ТЗ 3.5)
                         : MoveType.NORMAL;
                 moves.add(new Move(List.of(from, to), type));
@@ -135,7 +135,7 @@ public final class MoveGenerator {
 
             Piece moved = piece;
             boolean nowPromoted = promoted;
-            if (piece.isMan() && isPromotionRow(piece.color(), step.to().row())) {
+            if (piece.isMan() && piece.color().isPromotionRow(step.to().row())) {
                 moved = Piece.king(piece.color()); // превращение немедленно, бой продолжается дамкой (ТЗ 3.5)
                 nowPromoted = true;
             }
@@ -212,10 +212,6 @@ public final class MoveGenerator {
     private static final int[][] DIRECTIONS = {
             {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
     };
-
-    private static boolean isPromotionRow(Color color, int row) {
-        return color == Color.WHITE ? row == 0 : row == Board.SIZE - 1;
-    }
 
     private static Board copy(Board board) {
         Board duplicate = Board.empty();

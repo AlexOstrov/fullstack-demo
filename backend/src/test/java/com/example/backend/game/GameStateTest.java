@@ -75,4 +75,124 @@ class GameStateTest {
         assertEquals(2, move.path().size());
         assertThrows(UnsupportedOperationException.class, () -> move.path().add(new Cell(3, 2)));
     }
+
+    // --- Применение ходов (ТЗ 4.4–4.5) ---
+
+    @Test
+    void applySimpleMoveUpdatesBoardAndCounters() {
+        GameState game = GameState.newGame(Color.WHITE);
+
+        game.applyMove(List.of(new Cell(5, 0), new Cell(4, 1)));
+
+        assertTrue(game.board().at(5, 0).isEmpty());
+        assertEquals(Piece.WHITE_MAN, game.board().at(4, 1));
+        assertEquals(Color.BLACK, game.currentPlayer(), "игрок сменился");
+        assertEquals(1, game.moveNumber());
+        assertEquals(1, game.version());
+        assertEquals(MoveType.NORMAL, game.lastMove().type());
+        assertEquals(List.of(new Cell(5, 0), new Cell(4, 1)), game.lastMove().path());
+        assertEquals(1, game.history().size());
+        assertEquals(2, game.positionRepetitions().size());
+        assertEquals(1, game.positionRepetitions().get(game.positionKey()));
+    }
+
+    @Test
+    void applyCaptureSeriesRemovesVictimsAlongTheWay() {
+        Board board = Board.empty();
+        board.place(6, 1, Piece.WHITE_MAN);
+        board.place(5, 2, Piece.BLACK_MAN);
+        board.place(3, 4, Piece.BLACK_MAN);
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+
+        game.applyMove(List.of(new Cell(6, 1), new Cell(4, 3), new Cell(2, 5)));
+
+        assertTrue(game.board().at(6, 1).isEmpty());
+        assertTrue(game.board().at(5, 2).isEmpty(), "первая жертва снята по мере прыжка");
+        assertTrue(game.board().at(3, 4).isEmpty(), "вторая жертва снята по мере прыжка");
+        assertEquals(Piece.WHITE_MAN, game.board().at(2, 5));
+        assertEquals(MoveType.CAPTURE, game.lastMove().type());
+    }
+
+    @Test
+    void applyMovePromotesManOnLastRow() {
+        Board whiteBoard = Board.empty();
+        whiteBoard.place(1, 2, Piece.WHITE_MAN);
+        GameState white = GameState.ofPosition(whiteBoard, Color.WHITE, Color.WHITE);
+        white.applyMove(List.of(new Cell(1, 2), new Cell(0, 3)));
+        assertEquals(Piece.WHITE_KING, white.board().at(0, 3), "белая превращается на row 0 (ТЗ 3.5)");
+        assertEquals(MoveType.PROMOTION, white.lastMove().type());
+
+        Board blackBoard = Board.empty();
+        blackBoard.place(6, 5, Piece.BLACK_MAN);
+        GameState black = GameState.ofPosition(blackBoard, Color.BLACK, Color.BLACK);
+        black.applyMove(List.of(new Cell(6, 5), new Cell(7, 4)));
+        assertEquals(Piece.BLACK_KING, black.board().at(7, 4), "чёрная превращается на row 7 (ТЗ 3.5)");
+        assertEquals(MoveType.PROMOTION, black.lastMove().type());
+    }
+
+    @Test
+    void applyMoveContinuesBattleAsKingAfterPromotion() {
+        Board board = Board.empty();
+        board.place(2, 1, Piece.WHITE_MAN);
+        board.place(1, 2, Piece.BLACK_MAN);
+        board.place(1, 4, Piece.BLACK_MAN);
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+
+        // после превращения на (0,3) бой продолжается дамкой: приземление (3,6) — «через клетку»
+        game.applyMove(List.of(new Cell(2, 1), new Cell(0, 3), new Cell(3, 6)));
+
+        assertTrue(game.board().at(1, 2).isEmpty());
+        assertTrue(game.board().at(1, 4).isEmpty());
+        assertEquals(Piece.WHITE_KING, game.board().at(3, 6), "бой продолжился дамкой (ТЗ 3.5)");
+        assertEquals(MoveType.PROMOTION, game.lastMove().type());
+    }
+
+    @Test
+    void applyMoveCountsOnlyKingQuietMoves() {
+        Board board = Board.empty();
+        board.place(4, 1, Piece.WHITE_KING);
+        board.place(6, 5, Piece.BLACK_MAN);
+        board.place(1, 6, Piece.BLACK_MAN);
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+
+        game.applyMove(List.of(new Cell(4, 1), new Cell(0, 5))); // тихий ход дамки
+        assertEquals(1, game.noCaptureKingMoves());
+
+        game.applyMove(List.of(new Cell(6, 5), new Cell(7, 4))); // ход простой шашкой (с превращением)
+        assertEquals(0, game.noCaptureKingMoves(), "ход простой шашкой обнуляет счётчик (ТЗ 3.6)");
+
+        game.applyMove(List.of(new Cell(0, 5), new Cell(2, 7))); // взятие дамкой
+        assertEquals(0, game.noCaptureKingMoves(), "взятие обнуляет счётчик даже у дамки");
+        assertEquals(1, game.board().count(Color.BLACK), "жертва снята");
+    }
+
+    @Test
+    void applyMoveRejectsPathAddressedToOpponentPiece() {
+        GameState game = GameState.newGame(Color.WHITE);
+
+        InvalidMoveException error = assertThrows(InvalidMoveException.class,
+                () -> game.applyMove(List.of(new Cell(2, 1), new Cell(3, 0))));
+
+        assertTrue(error.getMessage().contains("чужой шашке"));
+        assertEquals(0, game.moveNumber(), "состояние не изменилось");
+        assertEquals(Color.WHITE, game.currentPlayer());
+    }
+
+    @Test
+    void applyMoveCountsRepeatedPosition() {
+        Board board = Board.empty();
+        board.place(4, 1, Piece.WHITE_KING);
+        board.place(3, 6, Piece.BLACK_KING);
+        GameState game = GameState.ofPosition(board, Color.WHITE, Color.WHITE);
+        String initialKey = game.positionKey();
+
+        // туда-обратно обеими дамками — позиция повторилась
+        game.applyMove(List.of(new Cell(4, 1), new Cell(5, 0)));
+        game.applyMove(List.of(new Cell(3, 6), new Cell(2, 7)));
+        game.applyMove(List.of(new Cell(5, 0), new Cell(4, 1)));
+        game.applyMove(List.of(new Cell(2, 7), new Cell(3, 6)));
+
+        assertEquals(2, game.positionRepetitions().get(initialKey),
+                "троекратное повторение считается по таблице (ТЗ 3.6)");
+    }
 }
