@@ -27,4 +27,4 @@ Desktop.ini
 .DS_Store
 
 # Secrets
-.secrets
+.secrets*
