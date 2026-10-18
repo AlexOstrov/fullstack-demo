@@ -2,10 +2,13 @@ package com.example.backend.game.ai;
 
 import com.example.backend.game.Board;
 import com.example.backend.game.Color;
+import com.example.backend.game.GameState;
 import com.example.backend.game.Move;
 import com.example.backend.game.MoveApplier;
 import com.example.backend.game.MoveGenerator;
+import com.example.backend.game.Piece;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -64,13 +67,16 @@ public final class AlphaBetaSearch {
 
         long startNanos = System.nanoTime();
         SearchContext context = new SearchContext(startNanos, settings.timeBudgetMs(),
-                new TranspositionTable(settings.ttCapacity()));
+                new TranspositionTable(settings.ttCapacity()), positionRepetitions);
 
         List<Move> rootMoves = MoveGenerator.generateMoves(board, player);
         context.nodes++;
         if (rootMoves.isEmpty()) {
             return new AiResult(null, 0, -MATE_SCORE, context.nodes, elapsedMs(startNanos));
         }
+
+        // корневая позиция — часть истории повторений партии (обрезка ничьих, S2.4)
+        context.pathPositions.merge(board.positionKey(player), 1, Integer::sum);
 
         Move bestMove = rootMoves.get(0);
         int bestScore = 0;
@@ -86,7 +92,8 @@ public final class AlphaBetaSearch {
             for (Move move : ordered) {
                 Board child = MoveApplier.apply(board, move);
                 int score = -negamax(child, player.opposite(), depth - 1,
-                        -SCORE_BOUND, -alpha, 1, context);
+                        -SCORE_BOUND, -alpha, 1, nextKingMoveCounter(board, move, noCaptureKingMoves),
+                        context);
                 if (context.timeUp) {
                     break;
                 }
@@ -118,7 +125,7 @@ public final class AlphaBetaSearch {
     }
 
     private int negamax(Board board, Color sideToMove, int depth, int alpha, int beta,
-                        int ply, SearchContext context) {
+                        int ply, int noCaptureKingMoves, SearchContext context) {
         if ((context.nodes++ & (TIME_CHECK_INTERVAL - 1)) == 0
                 && System.nanoTime() > context.deadlineNanos) {
             context.timeUp = true;
@@ -129,68 +136,90 @@ public final class AlphaBetaSearch {
         if (moves.isEmpty()) {
             return -MATE_SCORE + ply; // нет ходов — поражение стороны, чей ход (ТЗ 3.6)
         }
-        // ничья по повторению и «30 полуходов дамками» — S2.4
 
-        if (depth == 0) {
-            return evaluator.evaluate(board, sideToMove);
-        }
+        // обрезка ничьих внутри поиска (ТЗ 6): троекратное повторение позиции
+        // и 30 полуходов только дамками без взятий (ТЗ 3.6) — ничья = 0
+        String positionKey = board.positionKey(sideToMove);
+        context.pathPositions.merge(positionKey, 1, Integer::sum);
+        try {
+            int occurrences = context.gameRepetitions.getOrDefault(positionKey, 0)
+                    + context.pathPositions.get(positionKey);
+            if (occurrences >= 3
+                    || noCaptureKingMoves >= GameState.KING_ONLY_DRAW_HALF_MOVES) {
+                return 0; // ничья сильнее любой статической оценки
+            }
 
-        // транспозиционная таблица (ТЗ 6): хэш позиции, кэш оценки и лучшего хода
-        long hash = zobrist.hash(board, sideToMove);
-        TranspositionTable.Entry ttEntry = context.tt.probe(hash);
-        Move ttMove = ttEntry != null ? ttEntry.move() : null;
+            if (depth == 0) {
+                return evaluator.evaluate(board, sideToMove);
+            }
 
-        int alphaOrig = alpha;
-        int betaOrig = beta;
-        if (ttEntry != null && ttEntry.depth() >= depth) {
-            int ttScore = fromTtScore(ttEntry.score(), ply);
-            switch (ttEntry.flag()) {
-                case EXACT -> {
+            // транспозиционная таблица (ТЗ 6): хэш позиции, кэш оценки и лучшего хода
+            long hash = zobrist.hash(board, sideToMove);
+            TranspositionTable.Entry ttEntry = context.tt.probe(hash);
+            Move ttMove = ttEntry != null ? ttEntry.move() : null;
+
+            int alphaOrig = alpha;
+            int betaOrig = beta;
+            if (ttEntry != null && ttEntry.depth() >= depth) {
+                int ttScore = fromTtScore(ttEntry.score(), ply);
+                switch (ttEntry.flag()) {
+                    case EXACT -> {
+                        return ttScore;
+                    }
+                    case LOWER -> {
+                        alpha = Math.max(alpha, ttScore);
+                    }
+                    case UPPER -> {
+                        beta = Math.min(beta, ttScore);
+                    }
+                }
+                if (alpha >= beta) {
                     return ttScore;
                 }
-                case LOWER -> {
-                    alpha = Math.max(alpha, ttScore);
+            }
+
+            List<Move> ordered = MoveOrdering.order(board, moves, ttMove,
+                    context.killer(ply, 0), context.killer(ply, 1));
+
+            int bestScore = -SCORE_BOUND;
+            Move bestMove = null;
+            for (Move move : ordered) {
+                Board child = MoveApplier.apply(board, move);
+                int score = -negamax(child, sideToMove.opposite(), depth - 1,
+                        -beta, -alpha, ply + 1,
+                        nextKingMoveCounter(board, move, noCaptureKingMoves), context);
+                if (context.timeUp) {
+                    return 0;
                 }
-                case UPPER -> {
-                    beta = Math.min(beta, ttScore);
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
+                if (score > alpha) {
+                    alpha = score;
+                }
+                if (alpha >= beta) {
+                    context.storeKiller(ply, move, board); // «убийственный» тихий ход
+                    break;
                 }
             }
-            if (alpha >= beta) {
-                return ttScore;
-            }
+
+            // сохранение: граница по результату ветвления (fail-low → UPPER, fail-high → LOWER)
+            TranspositionTable.Flag flag = bestScore <= alphaOrig
+                    ? TranspositionTable.Flag.UPPER
+                    : bestScore >= betaOrig ? TranspositionTable.Flag.LOWER : TranspositionTable.Flag.EXACT;
+            context.tt.store(hash, depth, toTtScore(bestScore, ply), flag, bestMove);
+            return bestScore;
+        } finally {
+            context.pathPositions.merge(positionKey, -1, Integer::sum); // откат пути
         }
+    }
 
-        List<Move> ordered = MoveOrdering.order(board, moves, ttMove,
-                context.killer(ply, 0), context.killer(ply, 1));
-
-        int bestScore = -SCORE_BOUND;
-        Move bestMove = null;
-        for (Move move : ordered) {
-            Board child = MoveApplier.apply(board, move);
-            int score = -negamax(child, sideToMove.opposite(), depth - 1,
-                    -beta, -alpha, ply + 1, context);
-            if (context.timeUp) {
-                return 0;
-            }
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-            }
-            if (score > alpha) {
-                alpha = score;
-            }
-            if (alpha >= beta) {
-                context.storeKiller(ply, move, board); // «убийственный» тихий ход
-                break;
-            }
-        }
-
-        // сохранение: граница по результату ветвления (fail-low → UPPER, fail-high → LOWER)
-        TranspositionTable.Flag flag = bestScore <= alphaOrig
-                ? TranspositionTable.Flag.UPPER
-                : bestScore >= betaOrig ? TranspositionTable.Flag.LOWER : TranspositionTable.Flag.EXACT;
-        context.tt.store(hash, depth, toTtScore(bestScore, ply), flag, bestMove);
-        return bestScore;
+    /** Счётчик «дамки без взятий» после хода: ход дамки без боя продолжает, иначе — сброс. */
+    private static int nextKingMoveCounter(Board board, Move move, int current) {
+        Piece moved = board.at(move.path().get(0).row(), move.path().get(0).col());
+        boolean kingQuiet = moved.isKing() && !MoveOrdering.isCapture(board, move);
+        return kingQuiet ? current + 1 : 0;
     }
 
     /**
@@ -221,18 +250,24 @@ public final class AlphaBetaSearch {
         return (System.nanoTime() - startNanos) / 1_000_000;
     }
 
-    /** Состояние одного поиска: дедлайн, счётчик узлов, TT, киллер-ходы, флаг таймаута. */
+    /** Состояние одного поиска: дедлайн, счётчик узлов, TT, киллер-ходы, история повторений. */
     private static final class SearchContext {
 
         final long deadlineNanos;
         final TranspositionTable tt;
+        /** Повторения из фактической истории партии (read-only). */
+        final Map<String, Integer> gameRepetitions;
+        /** Повторения вдоль текущей ветви поиска (добавление/откат по возврату). */
+        final Map<String, Integer> pathPositions = new HashMap<>();
         final Move[] killers = new Move[MAX_PLIES * KILLERS_PER_PLY];
         long nodes;
         boolean timeUp;
 
-        SearchContext(long startNanos, long timeBudgetMs, TranspositionTable tt) {
+        SearchContext(long startNanos, long timeBudgetMs, TranspositionTable tt,
+                      Map<String, Integer> gameRepetitions) {
             this.deadlineNanos = startNanos + timeBudgetMs * 1_000_000;
             this.tt = tt;
+            this.gameRepetitions = gameRepetitions;
         }
 
         Move killer(int ply, int slot) {

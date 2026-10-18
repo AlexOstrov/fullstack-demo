@@ -3,11 +3,16 @@ package com.example.backend.game.ai;
 import com.example.backend.game.Board;
 import com.example.backend.game.Cell;
 import com.example.backend.game.Color;
+import com.example.backend.game.GameState;
+import com.example.backend.game.Move;
+import com.example.backend.game.MoveApplier;
 import com.example.backend.game.MoveGenerator;
+import com.example.backend.game.MoveType;
 import com.example.backend.game.Piece;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -97,6 +102,41 @@ class AlphaBetaSearchTest {
 
         assertEquals(List.of(new Cell(3, 2), new Cell(5, 4)), result.move().path(),
                 "тактический выбор не зависит от размера TT");
+    }
+
+    @Test
+    void choosesDrawByRepetitionOverLosingLine() {
+        Board board = Board.empty();
+        board.place(5, 0, Piece.WHITE_MAN);
+        board.place(2, 1, Piece.WHITE_MAN);
+        board.place(0, 3, Piece.BLACK_KING);
+
+        // позиция после хода (5,0)→(4,1) уже встречалась дважды:
+        // ещё одно вхождение — троекратное повторение и ничья (ТЗ 3.6)
+        Board repeated = MoveApplier.apply(board,
+                new Move(List.of(new Cell(5, 0), new Cell(4, 1)), MoveType.NORMAL));
+        Map<String, Integer> history = Map.of(repeated.positionKey(Color.BLACK), 2);
+
+        AiResult result = search.findBestMove(board, Color.WHITE, history, 0,
+                AiSettings.of(AiPreset.EASY));
+
+        assertEquals(List.of(new Cell(5, 0), new Cell(4, 1)), result.move().path(),
+                "возврат в повторяющуюся позицию (ничья 0) лучше проигрышных линий (материал −200)");
+        assertEquals(0, result.score(), "ничья внутри поиска оценивается в 0");
+    }
+
+    @Test
+    void kingOnlyCounterForcesDrawInsideSearch() {
+        Board board = Board.empty();
+        board.place(5, 0, Piece.WHITE_KING);
+        board.place(0, 3, Piece.BLACK_KING);
+
+        AiResult result = search.findBestMove(board, Color.WHITE, Map.of(),
+                GameState.KING_ONLY_DRAW_HALF_MOVES - 1, AiSettings.of(AiPreset.EASY));
+
+        assertNotNull(result.move());
+        assertEquals(0, result.score(),
+                "любой ход дамки без боя доводит счётчик до 30 — ничья (ТЗ 3.6)");
     }
 
     @Test

@@ -99,6 +99,11 @@ public final class Board {
         return key.toString();
     }
 
+    /** Ключ «расстановка + очередь хода» — для троекратного повторения (ТЗ 3.6). */
+    public String positionKey(Color sideToMove) {
+        return positionKey() + ':' + sideToMove;
+    }
+
     /** Независимая копия поля — для поиска минимакса (ТЗ 6). */
     public Board copy() {
         Board copy = new Board();

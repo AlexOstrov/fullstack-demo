@@ -15,7 +15,7 @@ import java.util.UUID;
 public final class GameState {
 
     /** Порог ничьей «только дамками»: 15 ходов каждого игрока = 30 полуходов (ТЗ 3.6). */
-    private static final int KING_ONLY_DRAW_HALF_MOVES = 30;
+    public static final int KING_ONLY_DRAW_HALF_MOVES = 30;
 
     private final UUID id;
     private final Board board;
@@ -53,7 +53,7 @@ public final class GameState {
 
     /** Ключ позиции «расстановка + игрок, чей ход» — для троекратного повторения (ТЗ 3.6). */
     public String positionKey() {
-        return board.positionKey() + ':' + currentPlayer;
+        return board.positionKey(currentPlayer);
     }
 
     public UUID id() {
