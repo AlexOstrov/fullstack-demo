@@ -1,0 +1,33 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: llm-service
+
+llm:
+  ollama:
+    base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+    connect-timeout-ms: 5000
+    chat-timeout-ms: 30000
+    tags-timeout-ms: 3000
+
+app:
+  llm:
+    model: ${LLM_MODEL:qwen2.5:7b-instruct}
+    allowed-models: ${LLM_ALLOWED_MODELS:qwen2.5:7b-instruct,qwen2.5:14b-instruct,llama3.1:8b-instruct}
+    refresh-interval-ms: ${LLM_REFRESH_INTERVAL_MS:300000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+logging:
+  level:
+    com.example.llmservice: INFO

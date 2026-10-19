@@ -1,0 +1,22 @@
+target/
+.mvn/wrapper/maven-wrapper.jar
+
+### IDE ###
+.idea
+*.iws
+*.iml
+*.ipr
+.classpath
+.factorypath
+.project
+.settings
+.springBeans
+.vscode
+nbbuild/
+nbdist/
+.nb-gradle/
+build/
+
+### OS ###
+.DS_Store
+Thumbs.db

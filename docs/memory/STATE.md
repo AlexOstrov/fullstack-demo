@@ -5,10 +5,10 @@
 ## Сейчас
 
 - ТЗ: **финализировано (v2.4)** — `game-chashki-TZ.md`
-- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6)
-- Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; R-1 исправлено (F-012); R-3/R-4 закрыты в S3 (env-настройки `AI_PRESET_*`, маппинг `CUSTOM`); R-2/R-5/R-6/R-7 → бэклог **B4**
+- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси** — в работе
+- Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; R-1 исправлено (F-012); R-3/R-4 закрыты в S3 (env-настройки `AI_PRESET_*`, маппинг `CUSTOM`); R-2/R-5/R-6/R-7 → бэклог **B4** (R-5 → Sprint 4)
 - В работе: —
-- Следующая задача: **S4.1 — микросервис-прокси `llm-service` к Ollama: `LLM_MODEL` (по умолчанию `qwen2.5:7b-instruct`), эндпоинт списка моделей (Ollama `/api/tags` ∩ `LLM_ALLOWED_MODELS`)** — старт Sprint 4
+- Следующая задача: **S4.2 — интеграция `game-service` с `llm-service` (чат → `/api/chat`, комментарии ИИ вместо fallback)**
 
 ## Задачи Sprint 1 (ТЗ, раздел 14) — все выполнены
 
@@ -36,6 +36,10 @@
 - S3.5 ✅ — персистентность: Flyway `V2__drop_items`/`V3__create_tournament`/`V4__create_llm_comments`, JPA, автосохранение результата best-effort (ТЗ 4.7). (коммит `2e02bf9`)
 - S3.6 ✅ — интеграционные тесты API, гонок и персистентности (ТЗ 12): `controller/GameApiIntegrationTest` (10), `service/GameServiceTest` (16). (коммит `0a7f031`)
 
+## Задачи Sprint 4 (TZ, раздел 14) — LLM-прокси
+
+- S4.1 ✅ — микросервис-прокси `llm-service` к Ollama (ТЗ 7): порт 8081, `LLM_MODEL` = `qwen2.5:7b-instruct` по умолчанию, `GET /api/models` = Ollama `/api/tags` ∩ `LLM_ALLOWED_MODELS`, `POST /api/chat` (streaming NDJSON), `OllamaClient` (WebClient, таймауты), `ModelCatalog` (кэш + `@PostConstruct`), `LlmChatClient` (проверка allowlist), тесты 13/13. (коммит S4.1)
+
 ## Задачи Sprint 0 (завершён)
 
 - S0.1 ✅ — backend: чистка дублей вне `src`, слияние конфигов, запуск + подключение к `db`. (коммит `2d6ce68`)
@@ -46,7 +50,7 @@
 
 ## Последняя завершённая фича
 
-- **F-015 (S3.2–S3.4, S3.6)** — REST-контракт партии (ТЗ 5): `GameController` (start/get/moves/move/ai-move/resign/draw/restart) и `ConfigController` (`GET /api/config/llm-models`); DTO — records + Jakarta Validation, доска компактными токенами, null-поля не сериализуются; единый формат ошибок (`ApiErrorCode`/`GlobalExceptionHandler`) с кодами `GAME_NOT_FOUND`/`NOT_YOUR_TURN`/`INVALID_MOVE`/`STALE_STATE`/`GAME_FINISHED`/`AI_BUSY`/`VALIDATION_ERROR` (+`INTERNAL_ERROR`); `GameService` — per-game lock, `clientMoveNumber` → `STALE_STATE`, повторный `ai-move` во время счёта → `AI_BUSY`, ход ИИ с историей повторений как есть (контракт R-1) и детерминированным fallback-комментарием (`commentSource=FALLBACK`); `AiSettingsFactory` (пресеты из env + `CUSTOM`), `LlmModelCatalog` (allowlist). Тесты: `GameApiIntegrationTest` (10, полный цикл + ошибки + автосохранение), `GameServiceTest` (16, вкл. `AI_BUSY` из другого потока), `AiSettingsFactoryTest` (5); `./mvnw test` — **161/161** (ADR-0015, ADR-0016).
+- **F-016 (S4.1)** — микросервис-прокси `llm-service` к Ollama (ТЗ 7): `backend/llm-service/` — отдельный модуль (порт 8081); `LlmServiceApplication` (`@SpringBootApplication`, `@ConfigurationPropertiesScan`); `OllamaClient` (WebClient к `Ollama /api/tags` и `/api/chat` NDJSON, таймауты через `OllamaProperties`); `ModelCatalog` (`@PostConstruct init()`, кэш моделей = Ollama ∩ `LLM_ALLOWED_MODELS`); `LlmChatClient` (проверка allowlist, `streamChat`); `LlmServiceController` (`GET /api/models`, `POST /api/chat` TEXT_EVENT_STREAM); DTO `ChatRequest`/`ModelsResponse` (+ Jakarta Validation); конфиг: `llm.ollama.*`, `app.llm.*` (env `LLM_MODEL`, `LLM_ALLOWED_MODELS`, `OLLAMA_BASE_URL`); тесты: `OllamaClientTest` (5, MockWebServer), `ModelCatalogTest` (3), `LlmChatClientTest` (3), `LlmServiceApplicationTests` (2); `./mvnw test -pl llm-service` — **13/13**; `./mvnw test` (весь multi-module) — **174/174**.
 - **F-014 (S3.5)** — персистентность (ТЗ 4.7): Flyway `V2__drop_items` (удалён демо-`items`, ADR-0009/R-6), `V3__create_tournament`, `V4__create_llm_comments`; сущность `Tournament` + `TournamentRepository`; `TournamentRecorder` — автосохранение результата при завершении партии best-effort (сбой БД логируется, партию не ломает), идемпотентно (флаг сессии + `UNIQUE(game_id)`); IT находят строку после сдачи/ничьей (ADR-0017).
 - **F-013 (S3.1)** — реестр партий (ТЗ 4.2): `GameRegistry` (`ConcurrentHashMap`, TTL-вытеснение, `find` продлевает активность), `GameSession` (состояние + настройки + `ReentrantLock` + флаг `aiThinking` + таймстампы), фоновая задача `GameSessionCleanup`; движок — `GameEndReason`, `GameStatus.isTerminal()`, `GameState.endReason()`/`addComment()`; конфигурация `game`/`ai`/`llm` через `@ConfigurationProperties`, env `AI_PRESET_*`/`GAME_TTL_MINUTES`/`AI_TT_CAPACITY` (R-3/R-4); тесты `GameRegistryTest` (6, вкл. TTL с управляемыми часами), `GameEndReasonTest` (5); `./mvnw test` — **132/132**.
 - **F-012 (ревью S0–S2)** — исправление R-1: двойной учёт корневой позиции при обрезке ничьей в поиске (`AlphaBetaSearch`); контракт `positionRepetitions`/`pathPositions` уточнён; регрессионный тест `rootPositionIsNotCountedTwiceForRepetitionPruning` (до фикса падал, `−149` vs `−141`); `./mvnw test` — **121/121**; отчёт `docs/memory/REVIEW-sprint-0-2.md`, остальные замечания R-2…R-7 → бэклог B4 (коммит `0cd8ebb`).

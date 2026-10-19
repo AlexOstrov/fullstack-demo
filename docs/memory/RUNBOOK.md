@@ -42,6 +42,23 @@ cd backend
 ./mvnw spring-boot:run "-Dspring-boot.run.jvmArguments=-Xmx1536m -XX:MaxMetaspaceSize=512m"
 ```
 
+## LLM-сервис (прокси к Ollama, порт 8081)
+
+```powershell
+cd backend
+./mvnw -pl llm-service spring-boot:run "-Dspring-boot.run.jvmArguments=-Xmx1024m -XX:MaxMetaspaceSize=256m"
+```
+
+Переменные окружения `llm-service`:
+- `OLLAMA_BASE_URL` (по умолчанию `http://localhost:11434`)
+- `LLM_MODEL` (по умолчанию `qwen2.5:7b-instruct`)
+- `LLM_ALLOWED_MODELS` (по умолчанию `qwen2.5:7b-instruct,qwen2.5:14b-instruct,llama3.1:8b-instruct`)
+- `LLM_REFRESH_INTERVAL_MS` (по умолчанию `300000`)
+
+Эндпоинты `llm-service` (базовый путь `/api`):
+- `GET /api/models` — список моделей (Ollama `/api/tags` ∩ `LLM_ALLOWED_MODELS`)
+- `POST /api/chat` (TEXT_EVENT_STREAM) — streaming чата к Ollama (`{"prompt": "...", "model": "..."}`)
+
 Альтернатива — jar (для быстрых smoke-проверок):
 
 ```powershell
@@ -152,5 +169,5 @@ $out = "protocol=https`nhost=github.com`n`n" | git credential fill
 - **БД:** `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 - **Игра:** `GAME_TTL_MINUTES` (по умолчанию `60`), `GAME_CLEANUP_INTERVAL_MS` (`300000`) — TTL и период фонового вытеснения партий.
 - **ИИ:** `AI_TT_CAPACITY` (`65536`); пресеты — `AI_PRESET_EASY_DEPTH`/`AI_PRESET_EASY_TIME_BUDGET_MS`, `AI_PRESET_MEDIUM_*` (4/1500), `AI_PRESET_HARD_*` (6/3000). `CUSTOM` — глубина/бюджет из запроса (ТЗ 6.1).
-- **LLM:** `OLLAMA_BASE_URL`, `LLM_MODEL`, `LLM_ALLOWED_MODELS`, `LLM_TIMEOUT_MS`, `LLM_MAX_RETRIES`, `LLM_TEMPERATURE`, `LLM_NUM_CTX`, `LLM_ENABLED`, `OLLAMA_KEEP_ALIVE`. В Sprint 3 используются `LLM_MODEL`/`LLM_ALLOWED_MODELS` (каталог моделей); вызовы Ollama — Sprint 4.
+- **LLM:** `OLLAMA_BASE_URL`, `LLM_MODEL`, `LLM_ALLOWED_MODELS`, `LLM_TIMEOUT_MS`, `LLM_MAX_RETRIES`, `LLM_TEMPERATURE`, `LLM_NUM_CTX`, `LLM_ENABLED`, `OLLAMA_KEEP_ALIVE`. В Sprint 4 (`llm-service`) используются `OLLAMA_BASE_URL`, `LLM_MODEL`, `LLM_ALLOWED_MODELS` (конфиг `llm.ollama.*` / `app.llm.*` в `backend/llm-service/src/main/resources/application.yml`).
 - Значения по умолчанию — в `backend/src/main/resources/application.yml`; переопределение — только env (секретов в репозитории нет).

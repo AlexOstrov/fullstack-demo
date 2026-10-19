@@ -25,13 +25,27 @@
 
 ## Команды
 
-### Backend
+### Backend (multi-module: `game-service` + `llm-service`)
 
-Запуск:
+Запуск `game-service` (API партии, порт 8080):
 
 ```bash
 cd backend
-./mvnw spring-boot:run "-Dspring-boot.run.jvmArguments=-Xmx1536m -XX:MaxMetaspaceSize=512m"
+./mvnw -pl game-service spring-boot:run "-Dspring-boot.run.jvmArguments=-Xmx1536m -XX:MaxMetaspaceSize=512m"
+```
+
+Запуск `llm-service` (прокси к Ollama, порт 8081):
+
+```bash
+cd backend
+./mvnw -pl llm-service spring-boot:run "-Dspring-boot.run.jvmArguments=-Xmx1024m -XX:MaxMetaspaceSize=256m"
+```
+
+Сборка всех модулей:
+
+```bash
+cd backend
+./mvnw clean install
 ```
 
 ### frontend

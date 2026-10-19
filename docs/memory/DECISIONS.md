@@ -130,4 +130,12 @@
 - **Альтернативы:** оставить пресеты в `AiPreset` (отклонено — ТЗ требует конфигурируемость); править `V1__create_items.sql` (отклонено — AGENTS запрещает).
 - **Следствия:** изменение пресетов/TTL — без правок кода; `AiPreset` остаётся дефолтами для тестов/движка, но источник значений для партии — свойства.
 
+## ADR-0018. Микросервис-прокси `llm-service` поверх Ollama (Sprint 4, S4.1)
+
+- **Дата:** 2026-10-18 (Sprint 4, S4.1)
+- **Контекст:** ТЗ 7 требует микросервис-прокси к Ollama: модель по умолчанию `qwen2.5:7b-instruct`, список моделей = пересечение Ollama `/api/tags` и `LLM_ALLOWED_MODELS`. Backend разбит на multi-module (`game-service` + `llm-service`), `llm-service` на порту 8081.
+- **Решение:** `llm-service` — Spring Boot WebFlux приложение. `OllamaClient` (WebClient к `Ollama /api/tags` и `/api/chat` NDJSON) с таймаутами через `OllamaProperties` (env `OLLAMA_BASE_URL`, connect/chat/tags таймауты). `ModelCatalog` — кэш моделей = Ollama ∩ `LLM_ALLOWED_MODELS` (env `LLM_ALLOWED_MODELS`), обновляется через `@PostConstruct` + `@Scheduled`. `LlmChatClient` — проверка allowlist моделей. `LlmServiceController` — `GET /api/models` и `POST /api/chat` (TEXT_EVENT_STREAM). DTO `ChatRequest`/`ModelsResponse` (Jakarta Validation). Конфиг: `llm.ollama.*`, `app.llm.*` (env `LLM_MODEL`, `LLM_ALLOWED_MODELS`).
+- **Альтернативы:** вызовы Ollama напрямую из `game-service` (отклонено — хуже изоляция провайдера, отдельный порт не нужен, но ADR-0003 зафиксировал отдельный сервис); JSON-ответ вместо streaming (отклонено — TZ требует streaming для комментариев).
+- **Следствия:** `backend/pom.xml` — aggregator (packaging pom, модули `game-service` и `llm-service`); код игры перенесён в `backend/game-service/`; `mvnw`/`mvnw.cmd`/`.mvn` скопированы в корень `backend/`; тесты `llm-service` — 13/13, весь multi-module — 174/174; `GET /api/config/llm-models` в `game-service` пока возвращает статичный allowlist (S4.2 подключит динамику через `llm-service`).
+
 
