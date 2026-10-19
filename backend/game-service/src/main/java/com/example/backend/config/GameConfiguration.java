@@ -2,18 +2,25 @@ package com.example.backend.config;
 
 import com.example.backend.game.ai.AlphaBetaSearch;
 import com.example.backend.game.ai.PositionEvaluator;
+import com.example.backend.service.CommentProvider;
+import com.example.backend.service.FallbackCommentProvider;
+import com.example.backend.service.LlmCommentProvider;
+import com.example.backend.service.LlmServiceClient;
 import com.example.backend.session.GameRegistry;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.client.RestClient;
 
 import java.time.Clock;
 
 /**
  * Сборка живого слоя игры: часы (для TTL/таймстампов), реестр партий (ТЗ 4.2),
- * поиск ИИ (ТЗ 6). Реестр и поиск — чистые классы без Spring; Spring владеет
- * их жизненным циклом через эти bean-методы.
+ * поиск ИИ (ТЗ 6), клиент LLM-сервиса и провайдер комментариев (ТЗ 7, Sprint 4).
+ * Реестр и поиск — чистые классы без Spring; Spring владеет их жизненным циклом
+ * через эти bean-методы.
  */
 @Configuration
 @EnableScheduling
@@ -42,5 +49,35 @@ public class GameConfiguration {
     @Bean
     public PositionEvaluator positionEvaluator() {
         return new PositionEvaluator();
+    }
+
+    /** Клиент к llm-service (прокси к Ollama) с таймаутом из настроек. */
+    @Bean
+    public LlmServiceClient llmServiceClient(LlmProperties properties) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout((int) properties.timeoutMs());
+        factory.setReadTimeout((int) properties.timeoutMs());
+        RestClient restClient = RestClient.builder()
+                .requestFactory(factory)
+                .baseUrl(properties.baseUrl())
+                .build();
+        return new LlmServiceClient(restClient);
+    }
+
+    /** Детерминированный fallback-комментарий (используется при недоступности LLM). */
+    @Bean
+    public FallbackCommentProvider fallbackCommentProvider() {
+        return new FallbackCommentProvider();
+    }
+
+    /**
+     * Провайдер комментариев к ходу ИИ: живой LLM через llm-service с fallback.
+     * Является основным бином {@link CommentProvider} (ссылка через тип).
+     */
+    @Bean
+    public CommentProvider commentProvider(LlmServiceClient llmClient,
+                                           LlmProperties properties,
+                                           FallbackCommentProvider fallback) {
+        return new LlmCommentProvider(llmClient, properties, fallback);
     }
 }

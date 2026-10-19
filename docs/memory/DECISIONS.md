@@ -138,4 +138,20 @@
 - **Альтернативы:** вызовы Ollama напрямую из `game-service` (отклонено — хуже изоляция провайдера, отдельный порт не нужен, но ADR-0003 зафиксировал отдельный сервис); JSON-ответ вместо streaming (отклонено — TZ требует streaming для комментариев).
 - **Следствия:** `backend/pom.xml` — aggregator (packaging pom, модули `game-service` и `llm-service`); код игры перенесён в `backend/game-service/`; `mvnw`/`mvnw.cmd`/`.mvn` скопированы в корень `backend/`; тесты `llm-service` — 13/13, весь multi-module — 174/174; `GET /api/config/llm-models` в `game-service` пока возвращает статичный allowlist (S4.2 подключит динамику через `llm-service`).
 
+## ADR-0019. Интеграция `game-service` с `llm-service` (Sprint 4, S4.2)
+
+- **Дата:** 2026-10-19 (Sprint 4, S4.2)
+- **Контекст:** после создания `llm-service` (S4.1) нужно подключить живой LLM к комментариям хода ИИ в `game-service`. ТЗ 7 требует комментарии к ходу ИИ с возможностью fallback при недоступности LLM.
+- **Решение:** `LlmServiceClient` (RestClient к `llm-service:8081/api/chat`, SSE-парсинг `data: ...`, таймауты из `LlmProperties`); `LlmCommentProvider` реализует `CommentProvider` — запрашивает комментарий у LLM, при `LLM_ENABLED=false`, таймауте или сбое переходит на `FallbackCommentProvider`; `LlmComment` помечается `fallback=false` + модель при успехе, `fallback=true` без модели при фолбэке. Бины настраиваются в `GameConfiguration` (`llmServiceClient`, `fallbackCommentProvider`, `commentProvider`). Промпт содержит доску, цвет ИИ, номер хода, тип хода, стиль комментария.
+- **Альтернативы:** оставить только fallback (отклонено — ТЗ требует живого LLM); синхронный HTTP без SSE (отклонено — TZ требует streaming для `/api/chat`).
+- **Следствия:** `FallbackCommentProvider` убран из `@Service` (создаётся как `@Bean` в `GameConfiguration`); `CommentProvider` — основной бин через `GameConfiguration`; тесты `LlmServiceClientTest` (6) + `LlmCommentProviderTest` (5); `game-service` — 172/172, весь multi-module — 185/185.
+
+## ADR-0020. Стиль и эмоция комментария LLM (Sprint 4, S4.3, R-5 из B4)
+
+- **Дата:** 2026-10-19 (Sprint 4, S4.3)
+- **Контекст:** ревью Sprint 0–2 (R-5) требует расширение `LlmComment` полями `style`/`emotion`. Стиль уже существовал в `CommentaryStyle` (enum в `dto.game`), но не передавался в `LlmComment`. Нужна эмоциональная окраска комментария для UI (иконка, оформление).
+- **Решение:** создан enum `Emotion` (`NEUTRAL`, `EXCITED`, `CONFIDENT`, `CAUTIOUS`) с токенами в `dto.game`; `LlmComment` расширен полями `style` (`CommentaryStyle`) и `emotion` (`Emotion`); `LlmCommentProvider` и `FallbackCommentProvider` передают `style`/`emotion` из `session.preferences().commentaryStyle()`; маппинг стиля на эмоцию: FRIENDLY_MASTER→NEUTRAL, COMPETITIVE→CONFIDENT, NEUTRAL→NEUTRAL. Интерфейс `CommentProvider` не меняется (сигнатура `comment(GameSession, Move)` оставлена без изменений — style/emotion определяются внутри провайдеров из сессии).
+- **Альтернативы:** добавить `style`/`emotion` как параметры в интерфейс `CommentProvider` (отклонено — нарушает контракт, все вызывающие должны бы меняться); хранить эмоцию отдельно в БД (отклонено — часть комментария, должна быть в `LlmComment`).
+- **Следствия:** `LlmComment` record расширен (обратная несовместимость для сериализации JSON — новые поля добавляются в конец, null-поля не сериализуются); тесты `LlmCommentProviderTest` расширены до 6 (вкл. `emotionOfMapsStyleToEmotion`); `game-service` — 173/173, весь multi-module — 186/186.
+
 

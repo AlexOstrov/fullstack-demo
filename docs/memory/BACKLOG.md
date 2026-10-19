@@ -17,8 +17,10 @@
 
 - R-3 (env `AI_PRESET_*`, `GAME_TTL_MINUTES`) и R-4 (маппинг `Difficulty.CUSTOM → AiSettings`) — **закрыты в Sprint 3** (`AiProperties`/`GameProperties`, `AiSettingsFactory`; ADR-0017, F-013/F-015).
 - R-6, частично: демо-`items` удалены (миграция `V2__drop_items`, ADR-0009/R-6) — **закрыто в Sprint 3**.
-- Остаются: R-2 (`score`/`depth` при обрыве первой итерации), R-5 (расширение `LlmComment`: `style`/`emotion`/`commentSource` — Sprint 4), оставшаяся часть R-6 (дубли копирования доски, мелочи тестов), R-7 (профилирование мобильности — Sprint 8).
+- Остаются: R-2 (`score`/`depth` при обрыве первой итерации), R-5 (**закрыт в Sprint 4.3** — `style`/`emotion` в `LlmComment`, F-018, ADR-0020), оставшаяся часть R-6 (дубли копирования доски, мелочи тестов), R-7 (профилирование мобильности — Sprint 8).
 - S4.1 (микросервис `llm-service` к Ollama) — **Done** (F-016, ADR-0018).
+- S4.2 (интеграция `game-service` с `llm-service`) — **Done** (F-017, ADR-0019).
+- S4.3 (комментарии со стилем и эмоцией) — **Done** (F-018, ADR-0020).
 
 ## Ссылки
 

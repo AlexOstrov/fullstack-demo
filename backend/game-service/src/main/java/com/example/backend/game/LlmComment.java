@@ -1,13 +1,20 @@
 package com.example.backend.game;
 
+import com.example.backend.dto.game.CommentaryStyle;
+import com.example.backend.dto.game.Emotion;
+
 /**
  * Комментарий LLM к ходу ИИ (ТЗ 4.1, 7.x).
  * {@code fallback} — комментарий выдан без обращения к LLM (недоступна/таймаут).
+ * {@code style} — стиль комментария (см. {@link CommentaryStyle}).
+ * {@code emotion} — эмоциональная окраска комментария (см. {@link Emotion}).
  */
 public record LlmComment(
         long moveNumber,
         String text,
         String model,
+        CommentaryStyle style,
+        Emotion emotion,
         boolean fallback
 ) {
 }

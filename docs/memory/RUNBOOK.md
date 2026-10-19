@@ -35,14 +35,14 @@ ollama ps                          # проверить, что модель з�
 ollama stop qwen2.5:7b-instruct
 ```
 
-## Backend (Spring Boot 4.1.1, порт 8080)
+## Backend — game-service (API партии, порт 8080)
 
 ```powershell
 cd backend
-./mvnw spring-boot:run "-Dspring-boot.run.jvmArguments=-Xmx1536m -XX:MaxMetaspaceSize=512m"
+./mvnw -pl game-service spring-boot:run "-Dspring-boot.run.jvmArguments=-Xmx1536m -XX:MaxMetaspaceSize=512m"
 ```
 
-## LLM-сервис (прокси к Ollama, порт 8081)
+## Backend — llm-service (прокси к Ollama, порт 8081)
 
 ```powershell
 cd backend
@@ -169,5 +169,6 @@ $out = "protocol=https`nhost=github.com`n`n" | git credential fill
 - **БД:** `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 - **Игра:** `GAME_TTL_MINUTES` (по умолчанию `60`), `GAME_CLEANUP_INTERVAL_MS` (`300000`) — TTL и период фонового вытеснения партий.
 - **ИИ:** `AI_TT_CAPACITY` (`65536`); пресеты — `AI_PRESET_EASY_DEPTH`/`AI_PRESET_EASY_TIME_BUDGET_MS`, `AI_PRESET_MEDIUM_*` (4/1500), `AI_PRESET_HARD_*` (6/3000). `CUSTOM` — глубина/бюджет из запроса (ТЗ 6.1).
-- **LLM:** `OLLAMA_BASE_URL`, `LLM_MODEL`, `LLM_ALLOWED_MODELS`, `LLM_TIMEOUT_MS`, `LLM_MAX_RETRIES`, `LLM_TEMPERATURE`, `LLM_NUM_CTX`, `LLM_ENABLED`, `OLLAMA_KEEP_ALIVE`. В Sprint 4 (`llm-service`) используются `OLLAMA_BASE_URL`, `LLM_MODEL`, `LLM_ALLOWED_MODELS` (конфиг `llm.ollama.*` / `app.llm.*` в `backend/llm-service/src/main/resources/application.yml`).
+- **LLM (game-service — подключение к llm-service):** `LLM_ENABLED` (по умолчанию `true` — живой LLM через `llm-service`; `false` — только fallback), `LLM_TIMEOUT_MS` (по умолчанию `8000`), `OLLAMA_BASE_URL` (адрес llm-service, по умолчанию `http://localhost:8081`).
+- **LLM (llm-service — прокси к Ollama):** `OLLAMA_BASE_URL` (по умолчанию `http://localhost:11434`), `LLM_MODEL` (по умолчанию `qwen2.5:7b-instruct`), `LLM_ALLOWED_MODELS`, `LLM_REFRESH_INTERVAL_MS` (конфиг `llm.ollama.*` / `app.llm.*` в `backend/llm-service/src/main/resources/application.yml`).
 - Значения по умолчанию — в `backend/src/main/resources/application.yml`; переопределение — только env (секретов в репозитории нет).
