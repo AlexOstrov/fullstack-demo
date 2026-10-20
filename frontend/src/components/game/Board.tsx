@@ -1,6 +1,7 @@
 /**
  * Игровая доска 8×8. Рендерится из состояния бэкенда (GameStateResponse).
  * Поддерживает выбор шашки, подсветку допустимых ходов и клик для хода.
+ * Поддерживает анимацию перемещения шашки.
  */
 
 import { useCallback } from "react";
@@ -14,6 +15,9 @@ interface BoardProps {
   humanColor: "WHITE" | "BLACK";
   selectedCell: { row: number; col: number } | null;
   onCellClick: (row: number, col: number) => void;
+  animatingFrom: { row: number; col: number } | null;
+  animatingTo: { row: number; col: number } | null;
+  animationType: "move" | "capture" | "promote" | null;
 }
 
 const TOKEN_TO_PIECE: Record<string, string | null> = {
@@ -33,6 +37,9 @@ export default function Board({
   humanColor,
   selectedCell,
   onCellClick,
+  animatingFrom,
+  animatingTo,
+  animationType,
 }: BoardProps) {
   const handleCellClick = useCallback(
     (row: number, col: number) => {
@@ -111,6 +118,17 @@ export default function Board({
                 cellOwner === humanColor ||
                 (isLegal && currentPlayerColor === humanColor);
 
+              const isAnimatingFrom = Boolean(
+                animatingFrom &&
+                  animatingFrom.row === rowIndex &&
+                  animatingFrom.col === colIndex
+              );
+              const isAnimatingTo = Boolean(
+                animatingTo &&
+                  animatingTo.row === rowIndex &&
+                  animatingTo.col === colIndex
+              );
+
               return (
                 <Cell
                   key={`${rowIndex}-${colIndex}`}
@@ -121,6 +139,11 @@ export default function Board({
                   isSelected={isSelected}
                   isLegalMove={isLegal}
                   isCapture={isCapture}
+                  isAnimatingFrom={isAnimatingFrom}
+                  isAnimatingTo={isAnimatingTo}
+                  animToRow={animatingTo?.row ?? 0}
+                  animToCol={animatingTo?.col ?? 0}
+                  animationType={animationType}
                   onClick={canClick ? handleCellClick : (() => {})}
                 />
               );
