@@ -68,6 +68,7 @@ class LlmCommentProviderTest {
         assertThat(comment.moveNumber()).isEqualTo(session.state().moveNumber());
         assertThat(comment.style()).isEqualTo(CommentaryStyle.COMPETITIVE);
         assertThat(comment.emotion()).isEqualTo(Emotion.CONFIDENT);
+        assertThat(comment.liked()).isTrue();
         verify(client).chat(anyString(), anyString());
     }
 
@@ -89,6 +90,7 @@ class LlmCommentProviderTest {
         assertThat(comment.text()).isEqualTo("Ход сделан.");
         assertThat(comment.style()).isEqualTo(CommentaryStyle.NEUTRAL);
         assertThat(comment.emotion()).isEqualTo(Emotion.NEUTRAL);
+        assertThat(comment.liked()).isTrue();
         verify(client).chat(anyString(), anyString());
     }
 
@@ -109,6 +111,7 @@ class LlmCommentProviderTest {
         assertThat(comment.text()).contains("взятием");
         assertThat(comment.style()).isEqualTo(CommentaryStyle.FRIENDLY_MASTER);
         assertThat(comment.emotion()).isEqualTo(Emotion.NEUTRAL);
+        assertThat(comment.liked()).isTrue();
         verify(client).chat(anyString(), anyString());
     }
 
@@ -128,6 +131,7 @@ class LlmCommentProviderTest {
         assertThat(comment.text()).isEqualTo("А вот и дамка. Придётся тебе попотеть.");
         assertThat(comment.style()).isEqualTo(CommentaryStyle.COMPETITIVE);
         assertThat(comment.emotion()).isEqualTo(Emotion.CONFIDENT);
+        assertThat(comment.liked()).isTrue();
         verify(client, never()).chat(anyString(), anyString());
     }
 
@@ -176,5 +180,22 @@ class LlmCommentProviderTest {
         LlmComment neutralComment = provider.comment(neutralSession,
                 new Move(List.of(new Cell(6, 4), new Cell(4, 4)), MoveType.NORMAL));
         assertThat(neutralComment.emotion()).isEqualTo(Emotion.NEUTRAL);
+        assertThat(neutralComment.liked()).isTrue();
+    }
+
+    @Test
+    void likedDefaultsToTrueForAllStyles() {
+        LlmServiceClient client = mock(LlmServiceClient.class);
+        when(client.chat(anyString(), anyString())).thenReturn("комментарий");
+        FallbackCommentProvider fallback = new FallbackCommentProvider();
+        LlmProperties props = llmProperties(true, "qwen2.5:7b-instruct", 8000);
+        LlmCommentProvider provider = new LlmCommentProvider(client, props, fallback);
+
+        for (CommentaryStyle style : CommentaryStyle.values()) {
+            GameSession s = session(Color.WHITE, style, "qwen2.5:7b-instruct");
+            LlmComment c = provider.comment(s,
+                    new Move(List.of(new Cell(6, 4), new Cell(4, 4)), MoveType.NORMAL));
+            assertThat(c.liked()).as("liked for " + style).isTrue();
+        }
     }
 }

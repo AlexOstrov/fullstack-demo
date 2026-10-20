@@ -44,11 +44,19 @@ public class LlmCommentEntity {
     @Column(name = "created_at", nullable = false)
     private Instant createdAt;
 
+    @Column(name = "liked", nullable = false)
+    private boolean liked = true;
+
     protected LlmCommentEntity() {
     }
 
     public LlmCommentEntity(UUID gameId, String comment, String style, String emotion,
                             String llmModel, Integer moveNumber, Instant createdAt) {
+        this(gameId, comment, style, emotion, llmModel, moveNumber, createdAt, true);
+    }
+
+    public LlmCommentEntity(UUID gameId, String comment, String style, String emotion,
+                            String llmModel, Integer moveNumber, Instant createdAt, boolean liked) {
         this.gameId = gameId;
         this.comment = comment;
         this.style = style;
@@ -56,6 +64,7 @@ public class LlmCommentEntity {
         this.llmModel = llmModel;
         this.moveNumber = moveNumber;
         this.createdAt = createdAt;
+        this.liked = liked;
     }
 
     public Long getId() {
@@ -88,5 +97,13 @@ public class LlmCommentEntity {
 
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public boolean isLiked() {
+        return liked;
+    }
+
+    public void setLiked(boolean liked) {
+        this.liked = liked;
     }
 }

@@ -169,6 +169,7 @@ class GameServiceTest {
         assertEquals(Color.WHITE, session.state().currentPlayer());
         assertTrue(outcome.comment().fallback());
         assertFalse(outcome.comment().text().isBlank());
+        assertTrue(outcome.comment().liked());
         assertEquals(1, session.state().comments().size());
         assertEquals(session.state().lastMove(), session.state().history().get(1));
         verify(llmCommentRepository, times(1)).save(any(com.example.backend.model.LlmCommentEntity.class));

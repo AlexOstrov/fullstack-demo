@@ -162,4 +162,12 @@
 - **Альтернативы:** сохранить комментарий в `tournament` (отклонено — разная сущность и семантика); сохранять только избранные комментарии (отклонено — B2 требует сохранение всех, лайки — отдельная история B2 UI-часть).
 - **Следствия:** `GameService` конструктор расширен `LlmCommentRecorder`; `GameServiceTest` обновлён (мок `LlmCommentRepository`, проверка `save`); `LlmCommentRecorderTest` (4 теста); `game-service` — 177/177, весь multi-module — **190/190**.
 
+## ADR-0022. Лайки комментариев LLM (Sprint 4, S4.5, B2)
+
+- **Дата:** 2026-10-20 (Sprint 4, S4.5)
+- **Контекст:** бэклог B2 требует лайки комментариев LLM: пиктограммы «палец вверх/вниз» рядом с комментарием; «вверх» → комментарий сохраняется/остаётся в `llm_comments`, «вниз» → комментарий удаляется из `llm_comments` (не сохраняется).
+- **Решение:** `LikedRequest` DTO с `@NotNull liked` (Jakarta Validation); `LlmCommentService.toggleLike(gameId, commentId, liked)` — liked=true вызывает `repository.save`, liked=false вызывает `repository.delete`; `LlmCommentController` — `POST /api/game/{id}/comments/{commentId}/like` → 204 No Content / 404 Not Found; `LlmCommentEntity.liked` + миграция `V6__add_liked_to_llm_comments.sql` (колонка `liked` boolean + индекс); `LlmComment.liked`, `AiTurnDto.liked`, `CommentDto.liked` в ответах API. Все автосохранённые комментарии получают `liked=true` по умолчанию.
+- **Альтернативы:** отдельный enum для лайка (отклонено — boolean достаточно для да/нет); хранить лайки в отдельной таблице `llm_comment_likes` (отклонено — проще использовать флаг на самой записи комментария).
+- **Следствия:** `GameService.aiMove()` уже сохраняет комментарий через `LlmCommentRecorder` (S4.4); лайк просто обновляет существующую запись; `LlmCommentServiceTest` (4 теста), `LlmCommentControllerTest` (3 теста); `game-service` — 185/185, весь multi-module — **198/198**.
+
 

@@ -5,6 +5,7 @@ public record AiTurnDto(
         MoveDto move,
         String comment,
         String emotion,
-        CommentSource commentSource
+        CommentSource commentSource,
+        boolean liked
 ) {
 }

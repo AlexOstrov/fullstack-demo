@@ -10,5 +10,31 @@
         }
       }
     }
+  },
+  "lsp": {
+    "jdtls": {
+      "disabled": false,
+      "roots": ["backend"]
+    },
+    "typescript": {
+      "disabled": false,
+      "roots": ["frontend"]
+    },
+    "eslint": {
+      "disabled": false,
+      "roots": ["frontend"]
+    },
+    "yaml-ls": {
+      "disabled": false,
+      "roots": [".", "backend"]
+    }
+  },
+  "experimental": {
+    "batch_tool": true
+  },
+  "permission": {
+    "lsp": "allow",
+    "bash": "ask",
+    "edit": "allow"
   }
 }

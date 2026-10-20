@@ -54,6 +54,7 @@ public class LlmCommentRecorder {
                 comment.emotion() != null ? comment.emotion().token() : null,
                 comment.model(),
                 (int) comment.moveNumber(),
-                Instant.now());
+                Instant.now(),
+                comment.liked());
     }
 }

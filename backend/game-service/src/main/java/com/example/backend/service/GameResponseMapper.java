@@ -56,13 +56,14 @@ public class GameResponseMapper {
                 ai);
     }
 
-    /** Ход ИИ с комментарием fallback (ТЗ 5.2). */
+    /** Ход ИИ с комментарием (ТЗ 5.2). */
     public AiTurnDto toAiTurn(Move move, LlmComment comment) {
         return new AiTurnDto(
                 MoveDto.from(move),
                 comment.text(),
-                FALLBACK_EMOTION,
-                comment.fallback() ? CommentSource.FALLBACK : CommentSource.LLM);
+                comment.emotion() != null ? comment.emotion().token() : FALLBACK_EMOTION,
+                comment.fallback() ? CommentSource.FALLBACK : CommentSource.LLM,
+                comment.liked());
     }
 
     /** История ходов и комментариев (ТЗ 5, {@code GET /{id}/moves}). */
