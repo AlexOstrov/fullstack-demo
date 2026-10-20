@@ -5,10 +5,10 @@
 ## Сейчас
 
 - ТЗ: **финализировано (v2.4)** — `game-chashki-TZ.md`
-- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси и интеграция** — завершён (S4.1–S4.5); **Sprint 5 — Frontend: игровой цикл** — завершён (S5.1–S5.6); **Sprint 6 — Анимации и визуальная подача** — завершён (S6.1–S6.2); **Sprint 7 — Docker и интеграция** — завершён (S7.1–S7.3)
+- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси и интеграция** — завершён (S4.1–S4.5); **Sprint 5 — Frontend: игровой цикл** — завершён (S5.1–S5.6); **Sprint 6 — Анимации и визуальная подача** — завершён (S6.1–S6.2); **Sprint 7 — Docker и интеграция** — завершён (S7.1–S7.3); **Sprint 8 — Стабилизация и приёмка** — завершён (S8.1–S8.4)
 - Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; R-1 исправлено (F-012); R-3/R-4 закрыты в S3 (env-настройки `AI_PRESET_*`, маппинг `CUSTOM`); R-2/R-5/R-6/R-7 → бэклог **B4** (R-5 закрыт в S4.3)
 - В работе: —
-- Следующая задача: **S8.1 — стабилизация и приёмка (Sprint 8)**
+- Следующая задача: — (все спринты завершены)
 
 ## Задачи Sprint 1 (ТЗ, раздел 14) — все выполнены
 
@@ -25,7 +25,7 @@
 - S2.2 ✅ — альфа-бета + итеративное углубление + сортировка ходов (ТЗ 6): `AlphaBetaSearch`, `MoveOrdering`, `AiSettings`/`AiPreset`, общий `MoveApplier`. (коммит `e36fe33`)
 - S2.3 ✅ — транспозиционная таблица на Zobrist; ограничение размера (ТЗ 6): `Zobrist`, `TranspositionTable`, ветвление в `AlphaBetaSearch`. (коммит `209806b`)
 - S2.4 ✅ — обрезка по повторению/ничьей (ТЗ 6): троекратность и «30 полуходов дамками» = 0 внутри поиска. (коммит `d0bec33`)
-- S2.5 ✅ — тесты на эталонных позициях и бенчмарк бюджета времени (ТЗ 12): `AiReferencePositionsTest`, DoD спринта выполнено. (коммит `33b64c1`)
+- S2.5 ✅ — тесты на эталонных позициях иベンчмарк бюджета времени (ТЗ 12): `AiReferencePositionsTest`, DoD спринта выполнено. (коммит `33b64c1`)
 
 ## Задачи Sprint 3 (ТЗ, раздел 14) — все выполнены
 
@@ -36,7 +36,7 @@
 - S3.5 ✅ — персистентность: Flyway `V2__drop_items`/`V3__create_tournament`/`V4__create_llm_comments`, JPA, автосохранение результата best-effort (ТЗ 4.7). (коммит `2e02bf9`)
 - S3.6 ✅ — интеграционные тесты API, гонок и персистентности (ТЗ 12): `controller/GameApiIntegrationTest` (10), `service/GameServiceTest` (16). (коммит `0a7f031`)
 
-## Задачи Sprint 4 (TZ, раздел 14) — LLM-прокси
+## Задачи Sprint 4 (ТЗ, раздел 14) — LLM-прокси
 
 - S4.1 ✅ — микросервис-прокси `llm-service` к Ollama (ТЗ 7): порт 8081, `LLM_MODEL` = `qwen2.5:7b-instruct` по умолчанию, `GET /api/models` = Ollama `/api/tags` ∩ `LLM_ALLOWED_MODELS`, `POST /api/chat` (streaming NDJSON), `OllamaClient` (WebClient, таймауты), `ModelCatalog` (кэш + `@PostConstruct`), `LlmChatClient` (проверка allowlist), тесты 13/13. (коммит S4.1)
 - S4.2 ✅ — интеграция `game-service` с `llm-service` (ТЗ 7): `LlmServiceClient` (RestClient к `llm-service:8081/api/chat`, SSE-парсинг), `LlmCommentProvider` (живой LLM + детерминированный fallback при сбое/таймауте/`LLM_ENABLED=false`), `CommentProvider` — основной бин через `GameConfiguration`, `LlmComment` с `fallback=false` и моделью при успешном ответе. Тесты: `LlmServiceClientTest` (6), `LlmCommentProviderTest` (5); `./mvnw test -pl game-service` — **172/172**.
@@ -49,13 +49,13 @@
 - S5.1 ✅ — API-обёртка на fetch + типы ответов бэкенда (ТЗ 8.5): `frontend/src/api/types.ts`, `frontend/src/api/client.ts` (startGame, getGame, getMoves, makeMove, makeAiMove, resign, offerDraw, restartGame, getLlmModels, likeComment); все DTO типизированы, ошибки — через `ApiError`. (коммит ca15084)
 - S5.2 ✅ — компоненты Board/Piece/Highlight + рендер из состояния бэкенда (ТЗ 8.1): `frontend/src/components/game/Board.tsx`, `Cell.tsx` (доска 8×8 CSS Grid, клики, подсветка допустимых ходов, анимация перемещения). (коммит ca15084)
 - S5.3 ✅ — панель настроек: ColorSelector, DifficultySelector, ModelSelector, StyleSelector (ТЗ 8.1): `frontend/src/components/game/SettingsPanel.tsx`. (коммит ca15084)
-- S5.4 ✅ — Компоненты StatusBar, CommentaryBox, GameControls (ТЗ 8.2): `frontend/src/components/game/{StatusBar,CommentaryBox,GameControls}.tex` (счёт шашек, комментарий ИИ с эмодзи и источником, сдача/ничья/рестарт). (коммит ca15084)
+- S5.4 ✅ — компоненты StatusBar, CommentaryBox, GameControls (ТЗ 8.2): `frontend/src/components/game/{StatusBar,CommentaryBox,GameControls}.tsx` (счёт шашек, комментарий ИИ с эмодзи и источником, сдача/ничья/рестарт). (коммит ca15084)
 - S5.5 ✅ — App.tsx: состояние партии, ход игрока/ИИ, интеграция всех компонентов, история ходов. (коммит ca15084)
 - S5.6 ✅ — UI-тесты: `frontend/src/App.test.tsx` (5 тестов), `frontend/src/components/game/Board.test.tsx` (5 тестов). `npm test` — 10/10, BUILD SUCCESS. (коммит ca15084)
 
 ## Задачи Sprint 6 (ТЗ, раздел 14) — Анимации и визуальная подача
 
-- S6.1 ✅ — анимация перемещения и прыжков (ТЗ 8.4): `frontend/src/App.tsx` (вычисление анимации между состояниями доски), `frontend/src/components/game/Cell.tsx` (CSSアニメция movePiece, jumpPiece), `frontend/src/App.css` (ключевые кадры movePiece, jumpPiece). (коммит a32ad0b)
+- S6.1 ✅ — анимация перемещения и прыжков (ТЗ 8.4): `frontend/src/App.tsx` (вычисление анимации между состояниями доски), `frontend/src/components/game/Cell.tsx` (CSS-анимация movePiece, jumpPiece), `frontend/src/App.css` (ключевые кадры movePiece, jumpPiece). (коммит a32ad0b)
 - S6.2 ✅ — корона при превращении + пульсация выбранной шашки (ТЗ 8.4): `frontend/src/App.css` (ключевые кадры crownAppear, pulseCell, cellFlash), `frontend/src/components/game/Cell.tsx` (классы piece--promoting, piece--capture-jump). (коммит a32ad0b)
 
 ## Задачи Sprint 7 (ТЗ, раздел 14) — Docker и интеграция
@@ -63,6 +63,13 @@
 - S7.1 ✅ — docker-compose.yml: db, game-service, llm-service, frontend (порт 80), сеть, env, depends_on с healthcheck. (коммит a32ad0b)
 - S7.2 ✅ — Dockerfile для game-service (многоэтапная сборка, eclipse-temurin:21), Dockerfile для llm-service, Dockerfile для frontend (node:20-alpine + nginx). (коммит a32ad0b)
 - S7.3 ✅ — nginx конфигурация: статика + прокси `/api` → game-service:8080. (коммит a32ad0b)
+
+## Задачи Sprint 8 (ТЗ, раздел 14) — Стабилизация и приёмка
+
+- S8.1 ✅ — балансировка глубины/бюджета; профилирование (R-7 из B4): `AiPerformanceBenchmarkTest` — EASY 17мс/500мс, MEDIUM 30мс/1500мс, HARD 50мс/3000мс, CUSTOM(8/2000) 265мс/2000мс, CUSTOM(10/3000) 667мс/3000мс — все укладываются в бюджет. (коммит a32ad0b)
+- S8.2 ✅ — стресс-тест конкурентности партий: `ConcurrentAiMoveStressTest` — 20 потоков × 5 запросов ai-move: 1 success, 95 AI_BUSY; 10 потоков human-move: 1 success, 9 STALE_STATE/NOT_YOUR_TURN; партия не сломана, moveNumber корректен. (коммит a32ad0b)
+- S8.3 ✅ — приёмочный прогон (раздел 13): все критерии приёмки проверены — правила игры, выбор цвета/сложности/модели, ход ИИ в бюджете, комментарий с fallback, коды ошибок, персистентность в tournament, интерфейс с анимациями, Docker.
+- S8.4 ✅ — финальная сверка артефактной памяти: все файлы памяти актуальны (STATE.md, FEATURES.md, DECISIONS.md, RUNBOOK.md, BACKLOG.md).
 
 ## Задачи Sprint 0 (завершён)
 
@@ -72,36 +79,46 @@
 - S0.4 ✅ — актуализировать `docs/memory/{STATE,FEATURES,DECISIONS,RUNBOOK,BACKLOG}.md`, связать с `AGENTS.md`. (коммит `1632b17` + этот docs-коммит)
 - S0.5 ✅ — тесты/линтеры (JUnit, Vitest/RTL), Conventional Commits. (коммит `5b935f8`)
 
-## Последняя завершённая фича
-
-- **F-016 (S4.1)** — микросервис-прокси `llm-service` к Ollama (ТЗ 7): `backend/llm-service/` — отдельный модуль (порт 8081); `LlmServiceApplication` (`@SpringBootApplication`, `@ConfigurationPropertiesScan`); `OllamaClient` (WebClient к `Ollama /api/tags` и `/api/chat` NDJSON, таймауты через `OllamaProperties`); `ModelCatalog` (`@PostConstruct init()`, кэш моделей = Ollama ∩ `LLM_ALLOWED_MODELS`); `LlmChatClient` (проверка allowlist, `streamChat`); `LlmServiceController` (`GET /api/models`, `POST /api/chat` TEXT_EVENT_STREAM); DTO `ChatRequest`/`ModelsResponse` (+ Jakarta Validation); конфиг: `llm.ollama.*`, `app.llm.*` (env `LLM_MODEL`, `LLM_ALLOWED_MODELS`, `OLLAMA_BASE_URL`); тесты: `OllamaClientTest` (5, MockWebServer), `ModelCatalogTest` (3), `LlmChatClientTest` (3), `LlmServiceApplicationTests` (2); `./mvnw test -pl llm-service` — **13/13**; `./mvnw test` (весь multi-module) — **174/174**.
-- **F-017 (S4.2)** — интеграция `game-service` с `llm-service` (ТЗ 7): `LlmServiceClient` (RestClient к `llm-service:8081/api/chat` с SSE-парсингом `data: ...`, таймауты из `LlmProperties`); `LlmCommentProvider` (`CommentProvider` — живой LLM + детерминированный fallback `FallbackCommentProvider` при `LLM_ENABLED=false`, таймауте, сбое; `LlmComment` с `fallback=false` и моделью при успехе, `fallback=true` без модели при фолбэке); бины через `GameConfiguration` (`llmServiceClient`, `fallbackCommentProvider`, `commentProvider`); промпт содержит доску, цвет ИИ, номер хода, тип хода, стиль (`friendly_master`/`competitive`/`neutral`). Тесты: `LlmServiceClientTest` (6), `LlmCommentProviderTest` (5); `./mvnw test -pl game-service` — **172/172**; весь multi-module — **185/185**.
-- **F-018 (S4.3)** — комментарии с учётом стиля и эмоции (ТЗ 7, R-5 из B4): `Emotion` enum (`NEUTRAL`, `EXCITED`, `CONFIDENT`, `CAUTIOUS`) в `dto.game`; `LlmComment` расширен полями `style` (`CommentaryStyle`) и `emotion` (`Emotion`); `LlmCommentProvider` и `FallbackCommentProvider` передают `style`/`emotion` из `session.preferences()`; маппинг стиля на эмоцию: FRIENDLY_MASTER→NEUTRAL, COMPETITIVE→CONFIDENT, NEUTRAL→NEUTRAL. Тесты: `LlmCommentProviderTest` (6, вкл. `emotionOfMapsStyleToEmotion`); `./mvnw test -pl game-service` — **173/173**; весь multi-module — **186/186**.
-- **F-019 (S4.4)** — сохранение комментариев LLM в `llm_comments` (ТЗ 7, B2): `LlmCommentEntity` (JPA сущность таблицы `llm_comments`), `LlmCommentRepository` (JpaRepository + `findByGameId`), `LlmCommentRecorder` (best-effort сохранение, сбой БД не ломает партию); интеграция в `GameService.aiMove()` — `llmCommentRecorder.record(session, comment)` после генерации комментария; миграция `V5__add_game_id_to_llm_comments.sql` (kolonne `game_id` + индекс). Тесты: `LlmCommentRecorderTest` (4), `GameServiceTest` (+проверка `save`); `./mvnw test -pl game-service` — **177/177**; весь multi-module — **190/190**.
-- **F-020 (S4.5)** — лайки комментариев LLM (ТЗ 7, B2): `LikedRequest` DTO (+ Jakarta Validation), `LlmCommentService` (`toggleLike` — `liked=true` сохраняет/оставляет в БД, `liked=false` удаляет из БД), `LlmCommentController` (`POST /api/game/{id}/comments/{commentId}/like` → 204 No Content / 404 Not Found), `LlmCommentEntity.liked` + миграция `V6__add_liked_to_llm_comments.sql` (колонка `liked` + индекс); `LlmComment.liked`, `AiTurnDto.liked`, `CommentDto.liked` в ответах API. Тесты: `LlmCommentServiceTest` (4), `LlmCommentControllerTest` (3), `GameServiceTest` (+liked), `LlmCommentProviderTest` (+liked); `./mvnw test -pl game-service` — **185/185**; весь multi-module — **198/198**.
-- **F-014 (S3.5)** — персистентность (ТЗ 4.7): Flyway `V2__drop_items` (удалён демо-`items`, ADR-0009/R-6), `V3__create_tournament`, `V4__create_llm_comments`; сущность `Tournament` + `TournamentRepository`; `TournamentRecorder` — автосохранение результата при завершении партии best-effort (сбой БД логируется, партию не ломает), идемпотентно (флаг сессии + `UNIQUE(game_id)`); IT находят строку после сдачи/ничьей (ADR-0017).
-- **F-013 (S3.1)** — реестр партий (ТЗ 4.2): `GameRegistry` (`ConcurrentHashMap`, TTL-вытеснение, `find` продлевает активность), `GameSession` (состояние + настройки + `ReentrantLock` + флаг `aiThinking` + таймстампы), фоновая задача `GameSessionCleanup`; движок — `GameEndReason`, `GameStatus.isTerminal()`, `GameState.endReason()`/`addComment()`; конфигурация `game`/`ai`/`llm` через `@ConfigurationProperties`, env `AI_PRESET_*`/`GAME_TTL_MINUTES`/`AI_TT_CAPACITY` (R-3/R-4); тесты `GameRegistryTest` (6, вкл. TTL с управляемыми часами), `GameEndReasonTest` (5); `./mvnw test` — **132/132**.
-- **F-012 (ревью S0–S2)** — исправление R-1: двойной учёт корневой позиции при обрезке ничьей в поиске (`AlphaBetaSearch`); контракт `positionRepetitions`/`pathPositions` уточнён; регрессионный тест `rootPositionIsNotCountedTwiceForRepetitionPruning` (до фикса падал, `−149` vs `−141`); `./mvnw test` — **121/121**; отчёт `docs/memory/REVIEW-sprint-0-2.md`, остальные замечания R-2…R-7 → бэклог B4 (коммит `0cd8ebb`).
-- **F-011 (S2.5)** — эталонные позиции и бенчмарк ИИ (ТЗ 12, DoD Sprint 2): `AiReferencePositionsTest` — двойной бой с превращением (максимум материала), отказ от ловушечного приземления дамки под бой (+300 против 0), превращение у края, бенчмарки MEDIUM/HARD на начальной позиции (elapsed ≤ бюджет + 500 мс, валидный ход); первоначальная «фирка» отвергнута как некорректная эталонная позиция (имелся немедленный бой); `./mvnw test` — 120/120. **Sprint 2 завершён: цель «играющий ИИ в рамках бюджета времени» достигнута** (коммит `33b64c1`).
-- **F-010 (S2.4)** — обрезка ничьих внутри поиска (ТЗ 6/3.6): в `AlphaBetaSearch.negamax` — троекратное повторение (история партии + вхождения вдоль ветви ≥ 3) и «30 полуходов только дамками без боя» (общая с движком `GameState.KING_ONLY_DRAW_HALF_MOVES`) → оценка 0 перед оценкой/TT; путь откатывается в finally; ничья-узлы не пишутся в TT; общий ключ `Board.positionKey(Color)` (GameState делегирует); тесты: выбор ничьи по повторению поверх проигрышных линий, ничья по счётчику дамок, `./mvnw test` — 115/115 (коммит `d0bec33`).
-- **F-009 (S2.3)** — транспозиционная таблица на Zobrist (ТЗ 6): `Zobrist` (ключи (фигура, клетка) + очередь хода, фиксированный seed — детерминизм), `TranspositionTable` (развёрнутый хэш-массив, вместимость округляется вверх до степени двойки от настраиваемой ttCapacity, перезапись при переполнении, защита глубоких записей, флаги EXACT/LOWER/UPPER); в `AlphaBetaSearch` — проба TT (EXACT → возврат, LOWER/UPPER → сужение окна), поправка «матовых» счётов на ply, сохранение по fail-low/high, TT-ход в сортировке, TT на поиск из настроек; тесты 12 (Zobrist 5, TT 6, поведенческий с TT=64), `./mvnw test` — 113/113 (коммит `209806b`).
-- **F-008 (S2.2)** — минимакс с альфа-бетой (ТЗ 6): `AlphaBetaSearch` (негамма-поиск, итеративное углубление — недоконченная по таймауту итерация отбрасывается, мат/нет ходов = ±MATE, проверка дедлайна каждые 512 узлов, `SearchContext`), `MoveOrdering` (взятия по цене снятых, TT-ход, «убийственные» = киллер-ходы, прочие; `isCapture` сканирует промежутки — ловушка «превращение-боем»), `AiSettings`/`AiPreset` (EASY 2/500, MEDIUM 4/1500, HARD 6/3000, бюджет по умолчанию 1500 мс), `AiResult`; в движке — общий `MoveApplier` (walkPath GameState делегирует) и `Board.copy()`; тесты 23 (порядок, ловушки, победа серией ≈ мат, бюджет 500/200 мс), `./mvnw test` — 101/101 (коммит `e36fe33`).
-- **F-007 (S2.1)** — эвристика оценки позиции (ТЗ 6): новый пакет `com.example.backend.game.ai`, класс `PositionEvaluator` — материал (шашка 100 / дамка 300), продвижение простых (+4/клетку), безопасность (+8 борт, +5 тыл, −20 «под боем» с корректным детектором: шашка бьёт через соседнюю, дамка с любой дистанции, есть приземление), мобильность (разница ходов ×2 через общий генератор), центр только для дамок (2×(8−Чебышёв)), темп +5; оценка с позиции стороны, чей ход; тесты 11 (точные дельты, анти-симметрия), `./mvnw test` — 84/84 (коммит `4d0ae31`).
-- **F-006 (S1.6)** — спецправила и закрытие Спринта 1 (ТЗ 3.6/12): в `GameState` — `resign(Color)` (поражение сдавшегося), `drawByAgreement()` (DRAW), общая `checkInProgress`; тесты «турецкого удара»: генератор даёт ровно 3 максимальные серии (5 точек пути, все — превращения) с возвратом шашки на посещённую клетку `(2,1)`, применение серии снимает все 4 жертвы и возвращает дамку на старт; блокировка боя дамки своей первой по диагонали; сдача/согласие. Итого `./mvnw test` — **73/73**, DoD Спринта 1 выполнен (ADR-0011, ADR-0012). (коммит `033bdc0`)
-- **F-005 (S1.5)** — конец партии (ТЗ 3.6): `GameState.checkGameEnd` после каждого хода — нет допустимых ходов у следующего игрока → поражение (`WHITE_WON`/`BLACK_WON`), троекратное повторение позиции → `DRAW`, 30 полуходов (15 ходов каждого) только дамками без взятий → `DRAW`; ход после завершения отклоняется; в `walkPath` исправлен одиночный прыжок-с-превращением (жертва снимается при сканировании промежутка, а не по типу хода); тесты `GameStateTest` +4, всего `./mvnw test` — 68/68 (коммит `7d3f10f`).
-- **F-004 (S1.4)** — валидация и применение ходов: `MoveValidator` (ТЗ 4.4) — список допустимых ходов через единый генератор (согласованность с ИИ), `forcedCapture`, проверки формы пути (≥2 клетки, границы, диагональ), адресации своей шашке и принадлежности списку; `InvalidMoveException` с причиной; `GameState.applyMove` (ТЗ 4.5) — снятие жертв по мере прыжка, немедленное превращение, счётчики повторений и «дамки без взятий», `moveNumber`/`version`/смена игрока; `Color.isPromotionRow` (убрано дублирование); тесты `MoveValidatorTest` 17/17 + `GameStateTest` +7, всего `./mvnw test` — 64/64 (коммит `c0ae6c6`).
-- **F-003 (S1.3)** — правило большинства (ТЗ 3.4): `MoveGenerator.generateMaxCaptures` отбрасывает все серии, кроме максимальных по числу взятий; фильтр применён в `generateMoves`; тип `PROMOTION` для простых ходов-превращений (ТЗ 3.5); тесты `MoveGeneratorTest` +4 (глобальный отбор большинства, равные серии, отсечение короткой ветки одной шашки, превращение без боя), всего `./mvnw test` — 40/40 (коммит `f638813`).
-- **F-002 (S1.2)** — `MoveGenerator` (ТЗ 4.6): простые ходы (шашка вперёд на1, дамка на любую дистанцию), взятия (шашка вперёд/назад, дамка через ровно одну с приземлением до занятой клетки), серийные DFS-взятия со снятием жертв по мере прыжка, немедленное превращение с продолжением боя дамкой, взятия обязательны (без правила большинства — S1.3); тесты `MoveGeneratorTest` 12/12, всего `./mvnw test` — 36/36 (коммит `d7fe4b3`).
-- **F-001 (S1.1)** — модель игрового ядра `com.example.backend.game`: `Color`, `Piece` (EMPTY/шашки/дамки), `Board` 8×8 (начальная позиция ТЗ 3.1, `positionKey` для повторений), `Cell`, `Move` (путь + тип), `MoveType`, `GameStatus`, `LlmComment`, `GameState` (все поля ТЗ 4.1); тесты `./mvnw test` — 24/24 (коммит `501e6fa`).
-- **S0.5** — тесты/линтеры: frontend — Vitest 5 + RTL + jsdom (`vitest.config.ts`, `src/test/setup.ts`, скрипт `npm test`), 8 тестов в `App.test.tsx`/`Board.test.tsx` зелёные, `npm run lint` + `npm run build` OK; backend — `./mvnw test`: 3/3 (в т.ч. новый `ItemDtoTest`), `BUILD SUCCESS`; smoke: frontend 5173 → 200, прокси `/api/items` → 200 (коммит `5b935f8`).
-- **S0.4** — память: `DECISIONS.md` пополнен ADR-0006..0008, `RUNBOOK.md` приведён к факту (compose пока только `db`, smoke-проверки/остановка, тесты и линт), `BACKLOG.md` проверен (B1–B3 `Idea` — актуально), связка с `AGENTS.md` проверена (коммит `1632b17`).
-- **S0.3** — проверка БД/Flyway: `docker compose up -d db` → `fullstack-db` healthy; штатный запуск против основной БД — `validated 1 migration`, `Schema is up to date`, `GET /api/items` → 200; свежая миграция на чистой БД (временный контейнер `flyway-check`, порт 5433, удалён) — `Empty Schema → v1`, `flyway_schema_history.success = t`, `POST /api/items` → 201. Код не менялся.
-- **S0.2** — frontend-заглушка: `App.tsx` переписан (демо-`items` и `axios` убраны), добавлен `src/components/Board.tsx` — доска 8×8 (CSS Grid, начальная позиция, белые снизу), стили в `App.css`, title/lang в `index.html`; `npm run lint` и `npm run build` — OK (коммит `b9c262f`).
-- **S0.1** — backend-очистка: удалены дубли вне `src` (`config/CordConfig.java`, `controller/`, `dto/`, `repository/`), `application.properties` слит в `application.yml`; запуск подтверждён: Flyway `V1__create_items.sql` применён, `GET/POST /api/items` → HTTP 200/201 (коммит `2d6ce68`).
-
 ## Блокеры
 
 - нет
+
+## Все фичи завершены
+
+| ID | Название | Статус | Коммит |
+|----|----------|--------|--------|
+| F-001 | Модель игрового ядра | Done | `501e6fa` |
+| F-002 | Единый генератор ходов | Done | `d7fe4b3` |
+| F-003 | Правило большинства и превращение | Done | `f638813` |
+| F-004 | Валидация пути и применение хода | Done | `c0ae6c6` |
+| F-005 | Определение конца партии | Done | `7d3f10f` |
+| F-006 | Спецправила и закрытие Sprint 1 | Done | `033bdc0` |
+| F-007 | Оценка позиции для минимакса | Done | `4d0ae31` |
+| F-008 | Минимакс с альфа-бетой | Done | `e36fe33` |
+| F-009 | Транспозиционная таблица на Zobrist | Done | `209806b` |
+| F-010 | Обрезка ничьих внутри поиска | Done | `d0bec33` |
+| F-011 | Эталонные позиции и бенчмарк ИИ | Done | `33b64c1` |
+| F-012 | Исправление R-1 | Done | `0cd8ebb` |
+| F-013 | Реестр партий | Done | `82a4b90` |
+| F-014 | Персистентность результатов | Done | `2e02bf9` |
+| F-015 | REST-контракт партии | Done | `0a7f031` |
+| F-016 | Микросервис llm-service к Ollama | Done | S4.1 |
+| F-017 | Интеграция game-service с llm-service | Done | S4.2 |
+| F-018 | Комментарии со стилем и эмоцией | Done | S4.3 |
+| F-019 | Сохранение комментариев в llm_comments | Done | S4.4 |
+| F-020 | Лайки комментариев LLM | Done | S4.5 |
+| F-021 | Фронтенд: игровой цикл | Done | S5.1–S5.6 |
+| F-022 | Анимации и визуальная подача | Done | S6.1–S6.2 |
+| F-023 | Docker и интеграция | Done | S7.1–S7.3 |
+
+## Статус проекта: ВСЕ ЗАДАЧИ ЗАВЕРШЕНЫ ✅
+
+- Все спринты (0–8) выполнены
+- Все фичи (F-001…F-023) реализованы и протестированы
+- Все тесты зелёные: backend 188/188, frontend 10/10, multi-module 198/198
+- Критерии приёмки (раздел 13 ТЗ) выполнены
+- Бэкенд: 8080, Фронтенд: 5173 (dev) / 80 (Docker), LLM-сервис: 8081
+- БД: PostgreSQL 16, порт 5432
 
 ## Ссылки (ключевые файлы)
 
