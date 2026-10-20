@@ -5,10 +5,10 @@
 ## Сейчас
 
 - ТЗ: **финализировано (v2.4)** — `game-chashki-TZ.md`
-- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси и интеграция** — завершён (S4.1–S4.5); **Sprint 5 — Frontend: игровой цикл** — завершён (S5.1–S5.6); **Sprint 6 — Анимации и визуальная подача** — завершён (S6.1–S6.2)
+- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси и интеграция** — завершён (S4.1–S4.5); **Sprint 5 — Frontend: игровой цикл** — завершён (S5.1–S5.6); **Sprint 6 — Анимации и визуальная подача** — завершён (S6.1–S6.2); **Sprint 7 — Docker и интеграция** — завершён (S7.1–S7.3)
 - Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; R-1 исправлено (F-012); R-3/R-4 закрыты в S3 (env-настройки `AI_PRESET_*`, маппинг `CUSTOM`); R-2/R-5/R-6/R-7 → бэклог **B4** (R-5 закрыт в S4.3)
 - В работе: —
-- Следующая задача: **S7.1 — Docker и интеграция (Sprint 7)**
+- Следующая задача: **S8.1 — стабилизация и приёмка (Sprint 8)**
 
 ## Задачи Sprint 1 (ТЗ, раздел 14) — все выполнены
 
@@ -43,6 +43,26 @@
 - S4.3 ✅ — комментарии с учётом стиля и эмоции (ТЗ 7, R-5 из B4): `Emotion` enum (`NEUTRAL`, `EXCITED`, `CONFIDENT`, `CAUTIOUS`) в `dto.game`; `LlmComment` расширен полями `style` (`CommentaryStyle`) и `emotion` (`Emotion`); `LlmCommentProvider` и `FallbackCommentProvider` передают `style`/`emotion` из `session.preferences()`; маппинг стиля на эмоцию: FRIENDLY_MASTER→NEUTRAL, COMPETITIVE→CONFIDENT, NEUTRAL→NEUTRAL. Тесты: `LlmCommentProviderTest` (6, вкл. `emotionOfMapsStyleToEmotion`); `./mvnw test -pl game-service` — **173/173**; весь multi-module — **186/186**.
 - S4.4 ✅ — сохранение комментариев LLM в `llm_comments` (ТЗ 7, B2): `LlmCommentEntity` (JPA для таблицы `llm_comments`), `LlmCommentRepository`, `LlmCommentRecorder` (best-effort, как `TournamentRecorder`); интеграция в `GameService.aiMove()` — комментарий сохраняется после хода ИИ; миграция `V5__add_game_id_to_llm_comments.sql` добавляет колонку `game_id`. Тесты: `LlmCommentRecorderTest` (4), `GameServiceTest` (обновлён, проверяет `llmCommentRepository.save`); `./mvnw test -pl game-service` — **177/177**; весь multi-module — **190/190**.
 - S4.5 ✅ — лайки комментариев LLM (ТЗ 7, B2): `LikedRequest` DTO (+ Jakarta Validation), `LlmCommentService` (`toggleLike` — вверх сохраняет в БД, вниз удаляет из БД), `LlmCommentController` (`POST /api/game/{id}/comments/{commentId}/like` → 204 No Content / 404 Not Found), `LlmCommentEntity.liked` + миграция `V6__add_liked_to_llm_comments.sql`; `LlmComment.liked`, `AiTurnDto.liked`, `CommentDto.liked` в ответах API. Тесты: `LlmCommentServiceTest` (4), `LlmCommentControllerTest` (3), `GameServiceTest` (+liked), `LlmCommentProviderTest` (+liked); `./mvnw test -pl game-service` — **185/185**; весь multi-module — **198/198**.
+
+## Задачи Sprint 5 (ТЗ, раздел 14) — Frontend: игровой цикл
+
+- S5.1 ✅ — API-обёртка на fetch + типы ответов бэкенда (ТЗ 8.5): `frontend/src/api/types.ts`, `frontend/src/api/client.ts` (startGame, getGame, getMoves, makeMove, makeAiMove, resign, offerDraw, restartGame, getLlmModels, likeComment); все DTO типизированы, ошибки — через `ApiError`. (коммит ca15084)
+- S5.2 ✅ — компоненты Board/Piece/Highlight + рендер из состояния бэкенда (ТЗ 8.1): `frontend/src/components/game/Board.tsx`, `Cell.tsx` (доска 8×8 CSS Grid, клики, подсветка допустимых ходов, анимация перемещения). (коммит ca15084)
+- S5.3 ✅ — панель настроек: ColorSelector, DifficultySelector, ModelSelector, StyleSelector (ТЗ 8.1): `frontend/src/components/game/SettingsPanel.tsx`. (коммит ca15084)
+- S5.4 ✅ — Компоненты StatusBar, CommentaryBox, GameControls (ТЗ 8.2): `frontend/src/components/game/{StatusBar,CommentaryBox,GameControls}.tex` (счёт шашек, комментарий ИИ с эмодзи и источником, сдача/ничья/рестарт). (коммит ca15084)
+- S5.5 ✅ — App.tsx: состояние партии, ход игрока/ИИ, интеграция всех компонентов, история ходов. (коммит ca15084)
+- S5.6 ✅ — UI-тесты: `frontend/src/App.test.tsx` (5 тестов), `frontend/src/components/game/Board.test.tsx` (5 тестов). `npm test` — 10/10, BUILD SUCCESS. (коммит ca15084)
+
+## Задачи Sprint 6 (ТЗ, раздел 14) — Анимации и визуальная подача
+
+- S6.1 ✅ — анимация перемещения и прыжков (ТЗ 8.4): `frontend/src/App.tsx` (вычисление анимации между состояниями доски), `frontend/src/components/game/Cell.tsx` (CSSアニメция movePiece, jumpPiece), `frontend/src/App.css` (ключевые кадры movePiece, jumpPiece). (коммит a32ad0b)
+- S6.2 ✅ — корона при превращении + пульсация выбранной шашки (ТЗ 8.4): `frontend/src/App.css` (ключевые кадры crownAppear, pulseCell, cellFlash), `frontend/src/components/game/Cell.tsx` (классы piece--promoting, piece--capture-jump). (коммит a32ad0b)
+
+## Задачи Sprint 7 (ТЗ, раздел 14) — Docker и интеграция
+
+- S7.1 ✅ — docker-compose.yml: db, game-service, llm-service, frontend (порт 80), сеть, env, depends_on с healthcheck. (коммит a32ad0b)
+- S7.2 ✅ — Dockerfile для game-service (многоэтапная сборка, eclipse-temurin:21), Dockerfile для llm-service, Dockerfile для frontend (node:20-alpine + nginx). (коммит a32ad0b)
+- S7.3 ✅ — nginx конфигурация: статика + прокси `/api` → game-service:8080. (коммит a32ad0b)
 
 ## Задачи Sprint 0 (завершён)
 

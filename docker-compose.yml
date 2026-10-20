@@ -1,4 +1,5 @@
 ﻿services:
+  # PostgreSQL база данных
   db:
     image: postgres:16-alpine
     container_name: fullstack-db
@@ -16,6 +17,70 @@
       retries: 10
     volumes:
       - pgdata:/var/lib/postgresql/data
+
+  # Backend: game-service (API партии, порт 8080)
+  game-service:
+    build:
+      context: ./backend
+      dockerfile: game-service/Dockerfile
+    container_name: fullstack-game-service
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db:5432/app
+      SPRING_DATASOURCE_USERNAME: app
+      SPRING_DATASOURCE_PASSWORD: app
+      GAME_TTL_MINUTES: 60
+      GAME_CLEANUP_INTERVAL_MS: 300000
+      AI_TT_CAPACITY: 65536
+      LLM_ENABLED: "true"
+      LLM_BASE_URL: http://llm-service:8081
+      LLM_MODEL: qwen2.5:7b-instruct
+      LLM_ALLOWED_MODELS: qwen2.5:7b-instruct,qwen2.5:3b-instruct,qwen3:4b,qwen3:8b
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # LLM-сервис: прокси к Ollama (порт 8081)
+  llm-service:
+    build:
+      context: ./backend
+      dockerfile: llm-service/Dockerfile
+    container_name: fullstack-llm-service
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      LLM_MODEL: qwen2.5:7b-instruct
+      LLM_ALLOWED_MODELS: qwen2.5:7b-instruct,qwen2.5:14b-instruct,llama3.1:8b-instruct
+      LLM_REFRESH_INTERVAL_MS: 300000
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8081/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+  # Frontend: React приложение с nginx (порт 80)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: fullstack-frontend
+    restart: unless-stopped
+    depends_on:
+      game-service:
+        condition: service_healthy
+    ports:
+      - "80:80"
 
 volumes:
   pgdata:

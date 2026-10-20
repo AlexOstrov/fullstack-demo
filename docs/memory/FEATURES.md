@@ -33,3 +33,9 @@
 | F-022 | Sprint 6 | Анимации и визуальная подача (ТЗ 8.4) | Done | `frontend/src/components/game/Cell.tsx` (CSS 애니메이션 перемещения шашки); `frontend/src/components/game/Board.tsx` (подсветка клетки назначения); `frontend/src/App.tsx` (вычисление анимации между состояниями доски, хранение prevBoard/displayBoard); `frontend/src/App.css` (ключевые кадры movePiece, jumpPiece, crownAppear, pulseCell, cellFlash) | `npm test` — 10/10, BUILD SUCCESS; `npm run lint` — OK; `npm run build` — OK; DoD: плавное перемещение шашки по диагонали, эффект прыжка при взятии, появление короны при превращении, пульсация выбранной шашки, подсветка клетки назначения | S6.1–S6.2 | 2026-10-20 |
 
 **Статусы:** `Todo` | `In progress` | `Done` | `Blocked`.
+
+
+
+| F-023 | Sprint 7 | Docker � ���������� (�� 9) | Done | docker-compose.yml (db, game-service, llm-service, frontend); ackend/game-service/Dockerfile (������������ ������, eclipse-temurin:21); ackend/llm-service/Dockerfile; rontend/Dockerfile (node:20-alpine + nginx); rontend/nginx.conf (������� + ������ /api > game-service:8080) | docker compose ������������ ������ � �������; healthcheck ��� ������� �������; env-���������� ��� ����������� � �� � LLM-������� | S7.1�S7.3 | 2026-10-20 |
+
+**�������:** Todo | In progress | Done | Blocked.

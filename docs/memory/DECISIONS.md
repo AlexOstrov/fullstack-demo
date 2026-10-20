@@ -170,4 +170,12 @@
 - **Альтернативы:** отдельный enum для лайка (отклонено — boolean достаточно для да/нет); хранить лайки в отдельной таблице `llm_comment_likes` (отклонено — проще использовать флаг на самой записи комментария).
 - **Следствия:** `GameService.aiMove()` уже сохраняет комментарий через `LlmCommentRecorder` (S4.4); лайк просто обновляет существующую запись; `LlmCommentServiceTest` (4 теста), `LlmCommentControllerTest` (3 теста); `game-service` — 185/185, весь multi-module — **198/198**.
 
+## ADR-0023. Docker и инфраструктура (Sprint 7, S7.1–S7.3)
+
+- **Дата:** 2026-10-20 (Sprint 7)
+- **Контекст:** ТЗ разделы 9 требует Docker для воспроизводимого запуска: `docker compose up -d` должен поднимать все сервисы (db, backend, frontend, llm-service).
+- **Решение:** multi-stage Dockerfile для каждого сервиса (game-service, llm-service, frontend с nginx); `docker-compose.yml` с сетью, env-переменными, depends_on с healthcheck; `LLM_ENABLED=false` по умолчанию в Docker (Ollama запускается на хосте, не в контейнере, поэтому `llm-service` обращается к `host.docker.internal:11434`).
+- **Альтернативы:** использовать официальный образ ollama в compose (отклонено — требует GPU/CPU нагрузки и сложнее настройка; simpler оставить Ollama на хосте); использовать docker-compose для только БД (отклонено — ТЗ требует полного стека).
+- **Следствия:** `docker-compose.yml` обновлён (добавлены game-service, llm-service, frontend); `backend/game-service/Dockerfile`, `backend/llm-service/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf` созданы; `OLLAMA_BASE_URL` в `llm-service` по умолчанию указывает на `host.docker.internal:11434` (Ollama на хосте).
+
 

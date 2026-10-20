@@ -117,15 +117,28 @@ Get-NetTCPConnection -LocalPort 5173 -State Listen |
   ForEach-Object { Stop-Process -Id $_.OwningProcess }
 ```
 
-## Docker
-
-Сейчас в `docker-compose.yml` есть **только сервис `db`** (остальные — в Sprint 7):
+## Docker (все сервисы)
 
 ```powershell
 cd D:\projects\fullstack-demo
-docker compose up -d db          # поднять БД
-docker compose ps                # статус/healthcheck
-docker compose logs -d db        # логи
+docker compose up -d              # поднять все сервисы (db, game-service, llm-service, frontend)
+docker compose ps                 # статус/healthcheck
+docker compose logs -f            # логи всех сервисов
+docker compose down               # остановить все сервисы
+```
+
+Доступ после запуска:
+- Frontend: http://localhost:80
+- Backend (game-service): http://localhost:8080
+- LLM-сервис (llm-service): http://localhost:8081
+- PostgreSQL: localhost:5432 (пользователь `app`, пароль `app`)
+
+Запуск только БД (без остальных сервисов):
+
+```powershell
+docker compose up -d db
+docker compose ps
+docker compose logs -f db
 ```
 
 ## Тесты и линтеры
