@@ -21,6 +21,7 @@ import com.example.backend.game.ai.AiSettings;
 import com.example.backend.game.ai.AlphaBetaSearch;
 import com.example.backend.game.ai.PositionEvaluator;
 import com.example.backend.model.Tournament;
+import com.example.backend.repository.LlmCommentRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.session.GamePreferences;
 import com.example.backend.session.GameRegistry;
@@ -58,6 +59,7 @@ class GameServiceTest {
 
     private final GameRegistry registry = new GameRegistry(Duration.ofMinutes(60), CLOCK);
     private final TournamentRepository repository = mock(TournamentRepository.class);
+    private final LlmCommentRepository llmCommentRepository = mock(LlmCommentRepository.class);
     private final AiSettingsFactory aiSettingsFactory = new AiSettingsFactory(aiProperties());
     private final LlmModelCatalog llmModelCatalog = new LlmModelCatalog(llmProperties());
     private final GameService service = new GameService(
@@ -68,11 +70,13 @@ class GameServiceTest {
             llmModelCatalog,
             new FallbackCommentProvider(),
             new TournamentRecorder(repository),
+            new LlmCommentRecorder(llmCommentRepository),
             CLOCK);
 
     @BeforeEach
     void resetMocks() {
         org.mockito.Mockito.reset(repository);
+        org.mockito.Mockito.reset(llmCommentRepository);
     }
 
     @Test
@@ -167,6 +171,7 @@ class GameServiceTest {
         assertFalse(outcome.comment().text().isBlank());
         assertEquals(1, session.state().comments().size());
         assertEquals(session.state().lastMove(), session.state().history().get(1));
+        verify(llmCommentRepository, times(1)).save(any(com.example.backend.model.LlmCommentEntity.class));
     }
 
     @Test

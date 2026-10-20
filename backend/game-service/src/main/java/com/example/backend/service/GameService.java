@@ -47,7 +47,8 @@ public class GameService {
     private final AiSettingsFactory aiSettingsFactory;
     private final LlmModelCatalog llmModels;
     private final CommentProvider commentProvider;
-    private final TournamentRecorder recorder;
+    private final TournamentRecorder tournamentRecorder;
+    private final LlmCommentRecorder llmCommentRecorder;
     private final Clock clock;
 
     public GameService(GameRegistry registry,
@@ -56,7 +57,8 @@ public class GameService {
                        AiSettingsFactory aiSettingsFactory,
                        LlmModelCatalog llmModels,
                        CommentProvider commentProvider,
-                       TournamentRecorder recorder,
+                       TournamentRecorder tournamentRecorder,
+                       LlmCommentRecorder llmCommentRecorder,
                        Clock clock) {
         this.registry = registry;
         this.search = search;
@@ -64,7 +66,8 @@ public class GameService {
         this.aiSettingsFactory = aiSettingsFactory;
         this.llmModels = llmModels;
         this.commentProvider = commentProvider;
-        this.recorder = recorder;
+        this.tournamentRecorder = tournamentRecorder;
+        this.llmCommentRecorder = llmCommentRecorder;
         this.clock = clock;
     }
 
@@ -137,6 +140,7 @@ public class GameService {
                 state.applyMove(move.path());
                 LlmComment comment = commentProvider.comment(session, move);
                 state.addComment(comment);
+                llmCommentRecorder.record(session, comment);
                 settle(session);
                 return new AiMoveOutcome(session, comment);
             } finally {
@@ -231,7 +235,7 @@ public class GameService {
     /** Зафиксировать завершение и (best-effort) сохранить результат (ТЗ 4.7). */
     private void settle(GameSession session) {
         if (session.state().status().isTerminal() && session.markFinished(clock.instant())) {
-            recorder.record(session);
+            tournamentRecorder.record(session);
         }
     }
 }

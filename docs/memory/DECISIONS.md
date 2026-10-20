@@ -154,4 +154,12 @@
 - **Альтернативы:** добавить `style`/`emotion` как параметры в интерфейс `CommentProvider` (отклонено — нарушает контракт, все вызывающие должны бы меняться); хранить эмоцию отдельно в БД (отклонено — часть комментария, должна быть в `LlmComment`).
 - **Следствия:** `LlmComment` record расширен (обратная несовместимость для сериализации JSON — новые поля добавляются в конец, null-поля не сериализуются); тесты `LlmCommentProviderTest` расширены до 6 (вкл. `emotionOfMapsStyleToEmotion`); `game-service` — 173/173, весь multi-module — 186/186.
 
+## ADR-0021. Сохранение комментариев LLM в `llm_comments` (Sprint 4, S4.4, B2)
+
+- **Дата:** 2026-10-20 (Sprint 4, S4.4)
+- **Контекст:** бэклог B2 требует сохранения комментариев LLM в таблицу `llm_comments` (создана миграцией V4). Таблица изначально не имеет колонки `game_id` — нужна привязка комментария к партии для будущих запросов (логи B2/B3).
+- **Решение:** `LlmCommentEntity` (JPA сущность таблицы `llm_comments` с полями comment, style, emotion, llm_model, move_number, created_at, game_id); `LlmCommentRepository` (JpaRepository + `findByGameId`/`deleteByGameId`); `LlmCommentRecorder` (best-effort сервис, как `TournamentRecorder` — сбой БД логируется, партию не ломает). Интеграция в `GameService.aiMove()` — `llmCommentRecorder.record(session, comment)` после генерации комментария. Миграция `V5__add_game_id_to_llm_comments.sql` добавляет колонку `game_id` и индекс (нельзя редактировать применённую V4 по AGENTS.md).
+- **Альтернативы:** сохранить комментарий в `tournament` (отклонено — разная сущность и семантика); сохранять только избранные комментарии (отклонено — B2 требует сохранение всех, лайки — отдельная история B2 UI-часть).
+- **Следствия:** `GameService` конструктор расширен `LlmCommentRecorder`; `GameServiceTest` обновлён (мок `LlmCommentRepository`, проверка `save`); `LlmCommentRecorderTest` (4 теста); `game-service` — 177/177, весь multi-module — **190/190**.
+
 
