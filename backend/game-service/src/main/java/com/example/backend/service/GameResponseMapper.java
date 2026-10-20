@@ -63,7 +63,8 @@ public class GameResponseMapper {
                 comment.text(),
                 comment.emotion() != null ? comment.emotion().token() : FALLBACK_EMOTION,
                 comment.fallback() ? CommentSource.FALLBACK : CommentSource.LLM,
-                comment.liked());
+                comment.liked(),
+                comment.id());
     }
 
     /** История ходов и комментариев (ТЗ 5, {@code GET /{id}/moves}). */

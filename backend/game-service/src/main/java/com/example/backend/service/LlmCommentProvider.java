@@ -48,7 +48,7 @@ public class LlmCommentProvider implements CommentProvider {
             String text = llmClient.chat(prompt, model);
             if (text != null && !text.isBlank()) {
                 long moveNumber = session.state().moveNumber();
-                return new LlmComment(moveNumber, text, model, style, emotion, false, true);
+                return new LlmComment(null, moveNumber, text, model, style, emotion, false, true);
             }
         } catch (LlmServiceClient.LlmServiceUnavailable ignored) {
             // ЛLM недоступен — используем fallback (он сам определит style/emotion из сессии)

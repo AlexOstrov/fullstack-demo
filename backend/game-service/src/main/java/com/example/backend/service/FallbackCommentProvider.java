@@ -21,7 +21,7 @@ public class FallbackCommentProvider implements CommentProvider {
         CommentaryStyle style = session.preferences().commentaryStyle();
         Emotion emotion = emotionOf(style);
         String text = text(style, aiMove.type());
-        return new LlmComment(session.state().moveNumber(), text, null, style, emotion, true, true);
+        return new LlmComment(null, session.state().moveNumber(), text, null, style, emotion, true, true);
     }
 
     /** Определить эмоциональную окраску комментария по стилю. */

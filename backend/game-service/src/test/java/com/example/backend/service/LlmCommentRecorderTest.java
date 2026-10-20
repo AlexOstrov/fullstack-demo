@@ -44,7 +44,7 @@ class LlmCommentRecorderTest {
         LlmCommentRecorder recorder = new LlmCommentRecorder(repository);
 
         GameSession session = session("qwen2.5:7b-instruct", CommentaryStyle.COMPETITIVE);
-        LlmComment comment = new LlmComment(1, "Отличный ход!", "qwen2.5:7b-instruct",
+        LlmComment comment = new LlmComment(null, 1, "Отличный ход!", "qwen2.5:7b-instruct",
                 CommentaryStyle.COMPETITIVE, Emotion.CONFIDENT, false, true);
 
         recorder.record(session, comment);
@@ -67,7 +67,7 @@ class LlmCommentRecorderTest {
         AiSettings aiSettings = new AiSettings(4, 1500, 65536);
         GameSession session = new GameSession(state, prefs, aiSettings, Instant.now());
 
-        LlmComment comment = new LlmComment(1, "Тестовый комментарий", "qwen2.5:7b-instruct",
+        LlmComment comment = new LlmComment(null, 1, "Тестовый комментарий", "qwen2.5:7b-instruct",
                 CommentaryStyle.NEUTRAL, Emotion.NEUTRAL, false, true);
 
         recorder.record(session, comment);
@@ -92,7 +92,7 @@ class LlmCommentRecorderTest {
         LlmCommentRecorder recorder = new LlmCommentRecorder(repository);
 
         GameSession session = session("qwen2.5:7b-instruct", CommentaryStyle.FRIENDLY_MASTER);
-        LlmComment comment = new LlmComment(1, "Ход сделан.", null,
+        LlmComment comment = new LlmComment(null, 1, "Ход сделан.", null,
                 CommentaryStyle.FRIENDLY_MASTER, Emotion.NEUTRAL, true, true);
 
         // Не должно кидать исключение — best-effort
@@ -107,7 +107,7 @@ class LlmCommentRecorderTest {
         LlmCommentRecorder recorder = new LlmCommentRecorder(repository);
 
         GameSession session = session(null, CommentaryStyle.NEUTRAL);
-        LlmComment comment = new LlmComment(1, "Ход сделан.", null,
+        LlmComment comment = new LlmComment(null, 1, "Ход сделан.", null,
                 CommentaryStyle.NEUTRAL, Emotion.NEUTRAL, true, true);
 
         recorder.record(session, comment);

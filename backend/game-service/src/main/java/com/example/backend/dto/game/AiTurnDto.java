@@ -6,6 +6,7 @@ public record AiTurnDto(
         String comment,
         String emotion,
         CommentSource commentSource,
-        boolean liked
+        boolean liked,
+        Long id
 ) {
 }
