@@ -179,3 +179,16 @@
 - **Следствия:** `docker-compose.yml` обновлён (добавлены game-service, llm-service, frontend); `backend/game-service/Dockerfile`, `backend/llm-service/Dockerfile`, `frontend/Dockerfile`, `frontend/nginx.conf` созданы; `OLLAMA_BASE_URL` в `llm-service` по умолчанию указывает на `host.docker.internal:11434` (Ollama на хосте).
 
 
+
+## ADR-0024. Docker-сборка backend и место frontend в окружении (Sprint 9)
+
+- **Дата:** 2026-10-21 (Sprint 9, стабилизация Docker-запуска)
+- **Контекст:** `docker compose up -d --build` не работал: (1) `backend/pom.xml` — Maven-агрегатор, а контекст сборки указывал на папку модуля, где нет родительского POM и обёртки Maven; (2) jar искался в `/app/target`, тогда как при `-pl <module>` артефакт лежит в `<module>/target`; (3) `frontend` копировал в Linux-образ Windows-каталог `node_modules` (`tsc`/`node.exe`), а `package-lock.json` исключался `.dockerignore`; (4) `llm-service` не стартовал (два конструктора у `OllamaClient`, незабинденные `Duration`-параметры); (5) `/api/chat` в Ollama вызывался с полем `prompt` вместо `messages` — Ollama отвечает `200` с пустым `content`, поэтому комментарии молча уходили в fallback; (6) SSE-парсер `game-service` не понимал `data:` без пробела (формат Spring WebFlux) и принимал пустые события за текст.
+- **Решение:**
+  - контекст сборки обоих backend-сервисов — `./backend`, Dockerfile — `game-service/Dockerfile` и `llm-service/Dockerfile`; в образ копируются POM обоих модулей и `src` только целевого; сборка `mvn -pl <module> -am package -DskipTests`;
+  - базовый образ сборки — `maven:3.9-eclipse-temurin-21-alpine` вместо `temurin` + Maven wrapper (убирает скачивание дистрибутива Maven при каждой сборке и SSL-флейки);
+  - `RUN --mount=type=cache,target=/root/.m2` — кэш зависимостей между пересборками; `backend/.dockerignore` исключает `**/target`;
+  - `frontend` вынесен в профиль `prod`: `docker compose up -d` поднимает db + game-service + llm-service, а production-сборка UI запускается `docker compose --profile prod up -d` (в разработке frontend идёт на хосте через `npm run dev`, порт 5173 — он меняется чаще всего);
+  - `frontend/Dockerfile` — `node:22-alpine` + `npm ci` по `package-lock.json`; `package-lock.json` разрешён в `.dockerignore`, `node_modules`/`dist` — исключены.
+- **Альтернативы:** один POM на каждый модуль без агрегатора (отклонено — дублирование зависимостей и версий); собирать оба модуля в один образ и выбирать jar через entrypoint (отклонено — нарушает разделение сервисов); ставить Maven wrapper в контейнер и мириться со скачиванием (отклонено — медленно и нестабильно); оставить frontend в обычном `up` (отклонено по требованию сопровождения: UI меняется чаще, пересборка образа на каждый чих избыточна).
+- **Следствия:** `docker compose build` — оба образа собираются, `docker compose up -d` — healthy; e2e `ai-move` отдаёт `commentSource=LLM` с корректным текстом, при остановленном `llm-service` — `commentSource=FALLBACK`; `LLM_TIMEOUT_MS=20000` в compose (7B-модель успевает ответить); тесты — 208/208 (game-service 191 + llm-service 17).

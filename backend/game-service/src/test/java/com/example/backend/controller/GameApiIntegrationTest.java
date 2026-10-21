@@ -29,7 +29,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Против реальной БД (ADR-0008); транзакция теста откатывается — таблица
  * {@code tournament} после прогона не засоряется.
  */
-@SpringBootTest
+@SpringBootTest(properties = "llm.enabled=false")
 @AutoConfigureMockMvc
 @Transactional
 class GameApiIntegrationTest {

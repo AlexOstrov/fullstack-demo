@@ -24,6 +24,8 @@
 - S4.4 (сохранение комментариев LLM в `llm_comments`) — **Done** (F-019, ADR-0021).
 - S4.5 (лайки комментариев LLM) — **Done** (F-020, ADR-0022); B2 закрыт — API лайков реализовано.
 - S7.1–S7.3 (Docker и интеграция) — **Done** (F-023, ADR-0023).
+- Sprint 9 (стабилизация Docker-запуска) — **Done** (F-024, ADR-0024): исправлены контексты сборки, путь jar, `npm ci` во frontend, старт `llm-service` (`@Autowired`, `Duration`-ключи), вызов Ollama `/api/chat` через `messages`, SSE-парсер `data:` без пробела. R-2/R-6/R-7 из B4 по-прежнему открыты.
+- Frontend вынесен в профиль `prod` (`docker compose --profile prod up -d`): в повседневной разработке UI запускается на хосте (`npm run dev`) — см. ADR-0024.
 
 ## Ссылки
 

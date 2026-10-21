@@ -43,6 +43,13 @@ public class LlmServiceController {
     @PostMapping(value = "/chat", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public Flux<String> chat(@Valid @RequestBody ChatRequest request) {
         String model = request.model() != null ? request.model() : properties.model();
-        return chatClient.streamChat(model, request.prompt());
+        // Склеиваем токены в одно событие: иначе SSE-кодировщик Spring пишет "data:<токен>",
+        // и ведущие пробелы токенов неотличимы от разделителя SSE (слова слипаются).
+        return chatClient.streamChat(model, request.prompt())
+                .collectList()
+                .flatMapMany(tokens -> {
+                    String text = String.join("", tokens).strip();
+                    return text.isEmpty() ? Flux.empty() : Flux.just(text);
+                });
     }
 }

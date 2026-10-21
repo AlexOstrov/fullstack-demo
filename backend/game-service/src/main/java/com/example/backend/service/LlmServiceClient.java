@@ -50,15 +50,28 @@ public class LlmServiceClient {
         }
     }
 
-    /** Разобрать SSE-ответ: строки {@code data: текст} объединяются в один комментарий. */
+    /**
+     * Разобрать SSE-ответ {@code llm-service}: строки {@code data: ...} объединяются
+     * в один комментарий. Spring WebFlux пишет событие как {@code data:текст}
+     * (без пробела после двоеточия), поэтому поддерживаются оба варианта.
+     * Пустые события (например, когда Ollama недоступна и поток пришёл без текста)
+     * дают {@code null} — вызывающий код переключится на fallback.
+     */
     private static String parseSse(String response) {
         StringBuilder sb = new StringBuilder();
-        for (String line : response.split("\n", -1)) {
-            if (line.startsWith("data: ")) {
-                sb.append(line.substring(6));
-            } else if (!line.isBlank() && !line.startsWith(":")) {
-                sb.append(line);
+        for (String line : response.split("\r?\n")) {
+            if (line.isBlank() || line.startsWith(":")) {
+                continue;
             }
+            String payload = line.startsWith("data:") ? line.substring("data:".length()) : line;
+            // По спецификации SSE один ведущий пробел после "data:" не является частью данных
+            if (payload.startsWith(" ")) {
+                payload = payload.substring(1);
+            }
+            if (payload.isBlank() || "[DONE]".equals(payload.strip())) {
+                continue;
+            }
+            sb.append(payload);
         }
         String result = sb.toString().trim();
         return result.isEmpty() ? null : result;

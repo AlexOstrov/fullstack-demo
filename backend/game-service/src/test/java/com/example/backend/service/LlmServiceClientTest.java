@@ -46,8 +46,41 @@ class LlmServiceClientTest {
     }
 
     @Test
-    void chatReturnsNullOnEmptyBody() {
+    void chatParsesSseWithoutSpaceAfterColon() {
+        // Spring WebFlux пишет событие как "data:текст" — без пробела после двоеточия
+        String body = "data:Пришлось ответить взятием — продолжаем спокойно.\n\n";
         mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE + "; charset=UTF-8")
+                .setBody(body));
+        String result = client.chat("ход дамкой", "qwen2.5:7b-instruct");
+        assertThat(result).isEqualTo("Пришлось ответить взятием — продолжаем спокойно.");
+    }
+
+    @Test
+    void chatJoinsSeveralSseEvents() {
+        String body = "data:Первая часть. \n\ndata:Вторая часть.\n\n";
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE + "; charset=UTF-8")
+                .setBody(body));
+        String result = client.chat("ход", "qwen2.5:7b-instruct");
+        assertThat(result).isEqualTo("Первая часть. Вторая часть.");
+    }
+
+    @Test
+    void chatReturnsNullWhenStreamHasOnlyEmptyEvents() {
+        // Реальный ответ llm-service, когда Ollama недоступна: пустые события "data:"
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
+                .setBody("data:\n\ndata:\n\n"));
+        String result = client.chat("ход", "qwen2.5:7b-instruct");
+        assertThat(result).isNull();
+    }
+
+    @Test
+    void chatReturnsNullOnEmptyBody() {        mockWebServer.enqueue(new MockResponse()
                 .setResponseCode(200)
                 .setHeader("Content-Type", MediaType.TEXT_EVENT_STREAM_VALUE)
                 .setBody(""));

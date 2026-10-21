@@ -7,6 +7,7 @@ import java.util.Objects;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -21,6 +22,7 @@ public class OllamaClient {
     private final OllamaProperties properties;
     private final ObjectMapper objectMapper;
 
+    @Autowired
     public OllamaClient(WebClient.Builder webClientBuilder, OllamaProperties properties) {
         this(webClientBuilder, properties, new ObjectMapper());
     }
@@ -44,26 +46,46 @@ public class OllamaClient {
     }
 
     public Flux<String> chatStream(String model, String prompt) {
-        OllamaChatRequest request = new OllamaChatRequest(model, prompt, true);
+        OllamaChatRequest request = new OllamaChatRequest(
+                model,
+                List.of(new OllamaChatMessage("user", prompt)),
+                true);
         return webClient.post()
                 .uri("/api/chat")
                 .contentType(MediaType.APPLICATION_JSON)
                 .accept(MediaType.APPLICATION_NDJSON)
                 .bodyValue(request)
                 .retrieve()
-                .bodyToFlux(String.class)
+                .bodyToMono(String.class)
                 .timeout(properties.chatTimeout())
-                .flatMap(line -> {
-                    try {
-                        JsonNode node = objectMapper.readTree(line);
-                        String content = node.path("message").path("content").asText(null);
-                        boolean done = node.path("done").asBoolean(false);
-                        Flux<String> result = content != null ? Flux.just(content) : Flux.empty();
-                        return done ? result : result;
-                    } catch (Exception e) {
-                        return Flux.empty();
-                    }
-                });
+                .flatMapMany(body -> Flux.fromIterable(parseContents(body)));
+    }
+
+    /**
+     * Разобрать NDJSON-ответ Ollama: по одному JSON-объекту на строку.
+     * Тело читается целиком, поэтому объект не может быть «разрезан» между сетевыми
+     * буферами (именно из-за этого ранее терялись все токены).
+     */
+    private List<String> parseContents(String body) {
+        List<String> contents = new ArrayList<>();
+        if (body == null || body.isBlank()) {
+            return contents;
+        }
+        for (String line : body.split("\r?\n")) {
+            if (line.isBlank()) {
+                continue;
+            }
+            try {
+                JsonNode node = objectMapper.readTree(line);
+                String content = node.path("message").path("content").asText(null);
+                if (content != null && !content.isEmpty()) {
+                    contents.add(content);
+                }
+            } catch (Exception ignored) {
+                // Одна битая строка не должна ломать весь ответ
+            }
+        }
+        return contents;
     }
 
     public Mono<List<String>> listModels() {
@@ -93,6 +115,10 @@ public class OllamaClient {
                 .onErrorReturn(java.util.Collections.<String>emptyList());
     }
 
-    public record OllamaChatRequest(String model, String prompt, Boolean stream) {
+    public record OllamaChatRequest(String model, List<OllamaChatMessage> messages, Boolean stream) {
+    }
+
+    /** Сообщение чата в формате Ollama: {@code /api/chat} принимает только {@code messages}. */
+    public record OllamaChatMessage(String role, String content) {
     }
 }

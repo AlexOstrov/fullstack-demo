@@ -5,10 +5,10 @@
 ## Сейчас
 
 - ТЗ: **финализировано (v2.4)** — `game-chashki-TZ.md`
-- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси и интеграция** — завершён (S4.1–S4.5); **Sprint 5 — Frontend: игровой цикл** — завершён (S5.1–S5.6); **Sprint 6 — Анимации и визуальная подача** — завершён (S6.1–S6.2); **Sprint 7 — Docker и интеграция** — завершён (S7.1–S7.3); **Sprint 8 — Стабилизация и приёмка** — завершён (S8.1–S8.4)
+- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси и интеграция** — завершён (S4.1–S4.5); **Sprint 5 — Frontend: игровой цикл** — завершён (S5.1–S5.6); **Sprint 6 — Анимации и визуальная подача** — завершён (S6.1–S6.2); **Sprint 7 — Docker и интеграция** — завершён (S7.1–S7.3); **Sprint 8 — Стабилизация и приёмка** — завершён (S8.1–S8.4); **Sprint 9 — Стабилизация Docker-запуска** — завершён (S9.1–S9.4)
 - Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; R-1 исправлено (F-012); R-3/R-4 закрыты в S3 (env-настройки `AI_PRESET_*`, маппинг `CUSTOM`); R-2/R-5/R-6/R-7 → бэклог **B4** (R-5 закрыт в S4.3)
 - В работе: —
-- Следующая задача: — (все спринты завершены)
+- Следующая задача: — (спринты 0–9 завершены; открытые идеи — B1, B3, остаток B4 в `BACKLOG.md`)
 
 ## Задачи Sprint 1 (ТЗ, раздел 14) — все выполнены
 
@@ -71,6 +71,13 @@
 - S8.3 ✅ — приёмочный прогон (раздел 13): все критерии приёмки проверены — правила игры, выбор цвета/сложности/модели, ход ИИ в бюджете, комментарий с fallback, коды ошибок, персистентность в tournament, интерфейс с анимациями, Docker.
 - S8.4 ✅ — финальная сверка артефактной памяти: все файлы памяти актуальны (STATE.md, FEATURES.md, DECISIONS.md, RUNBOOK.md, BACKLOG.md).
 
+## Задачи Sprint 9 (после S8) — стабилизация Docker-запуска
+
+- S9.1 ✅ — сборка backend-образов: контекст `./backend` (Maven-агрегатор), `maven:3.9-eclipse-temurin-21-alpine`, BuildKit-кэш `~/.m2`, jar из `<module>/target`, `backend/.dockerignore`. Файлы: `docker-compose.yml`, `backend/game-service/Dockerfile`, `backend/llm-service/Dockerfile`, `backend/.dockerignore`.
+- S9.2 ✅ — frontend в Docker: `node:22-alpine` + `npm ci` по `package-lock.json`, `node_modules`/`dist` исключены; сервис вынесен в профиль `prod` (обычный `docker compose up -d` поднимает только db + game-service + llm-service). Файлы: `frontend/Dockerfile`, `frontend/.dockerignore`, `docker-compose.yml`.
+- S9.3 ✅ — дефекты `llm-service`: `@Autowired` на публичном конструкторе `OllamaClient` (было два конструктора → «No default constructor found»), `messages` вместо `prompt` в `/api/chat` (Ollama отвечала пустым `content`), корректные `Duration`-ключи в `application.yml`, склейка токенов в одно SSE-событие.
+- S9.4 ✅ — дефекты `game-service`: SSE-парсер понимает `data:` без пробела (формат Spring WebFlux), пустые события → `null` → fallback; тесты `LlmServiceClientTest` (9), `OllamaClientTest` (6), новый `LlmServiceControllerTest` (3), герметичность `GameApiIntegrationTest` (`llm.enabled=false`). Итог: **208/208**.
+
 ## Задачи Sprint 0 (завершён)
 
 - S0.1 ✅ — backend: чистка дублей вне `src`, слияние конфигов, запуск + подключение к `db`. (коммит `2d6ce68`)
@@ -110,12 +117,14 @@
 | F-021 | Фронтенд: игровой цикл | Done | S5.1–S5.6 |
 | F-022 | Анимации и визуальная подача | Done | S6.1–S6.2 |
 | F-023 | Docker и интеграция | Done | S7.1–S7.3 |
+| F-024 | Стабилизация Docker-запуска и дефекты интеграции LLM | Done | S9.1–S9.4 |
 
 ## Статус проекта: ВСЕ ЗАДАЧИ ЗАВЕРШЕНЫ ✅
 
-- Все спринты (0–8) выполнены
-- Все фичи (F-001…F-023) реализованы и протестированы
-- Все тесты зелёные: backend 188/188, frontend 10/10, multi-module 198/198
+- Все спринты (0–9) выполнены
+- Все фичи (F-001…F-024) реализованы и протестированы
+- Все тесты зелёные: backend **208/208** (game-service 191 + llm-service 17), frontend 10/10
+- Docker: `docker compose up -d` — db + game-service + llm-service (healthy); `docker compose --profile prod up -d` — добавляет frontend на http://localhost/
 - Критерии приёмки (раздел 13 ТЗ) выполнены
 - Бэкенд: 8080, Фронтенд: 5173 (dev) / 80 (Docker), LLM-сервис: 8081
 - БД: PostgreSQL 16, порт 5432

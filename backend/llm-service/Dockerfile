@@ -1,38 +1,36 @@
 # Dockerfile для llm-service (Sprint 7)
-FROM eclipse-temurin:21-jdk-alpine AS builder
+# Контекст сборки: ./backend (корень Maven-агрегатора backend/pom.xml)
+FROM maven:3.9-eclipse-temurin-21-alpine AS builder
 
-WORKDIR /app
+WORKDIR /build
 
-# Копируем файлы сборки Maven
-COPY ../.mvn/ .mvn/
-COPY ../mvnw ../mvnw.cmd ../pom.xml ./
+# 1. POM агрегатора
 COPY pom.xml ./
 
-# Загружаем зависимости (кешируемый слой)
-RUN ./mvnw dependency:go-offline -B -q
+# 2. POM обоих модулей: агрегатор читает их все, даже если собираем один
+COPY game-service/pom.xml game-service/pom.xml
+COPY llm-service/pom.xml llm-service/pom.xml
 
-# Копируем исходный код
-COPY src/ src/
+# 3. Исходники только целевого модуля
+COPY llm-service/src llm-service/src
 
-# Собираем приложение
-RUN ./mvnw package -DskipTests -B -q
+# 4. Сборка целевого модуля. Кэш ~/.m2 — между пересборками (BuildKit)
+RUN --mount=type=cache,target=/root/.m2 \
+    mvn -B -ntp -pl llm-service -am package -DskipTests \
+    && cp llm-service/target/llm-service-*.jar /build/app.jar
 
-# Финальный образ runtime
+# --- Runtime ---
 FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-# Копируем собранный jar
-COPY --from=builder /app/target/llm-service-*.jar app.jar
-
-# Создаём пользователя без привилегий
 RUN addgroup -S appuser && adduser -S appuser -G appuser
+COPY --from=builder /build/app.jar /app/app.jar
+RUN chown -R appuser:appuser /app
 USER appuser
 
-# Порт приложения
 EXPOSE 8081
 
-# Переменные окружения с valores по умолчанию
 ENV OLLAMA_BASE_URL=http://host.docker.internal:11434
 ENV LLM_MODEL=qwen2.5:7b-instruct
 ENV LLM_ALLOWED_MODELS=qwen2.5:7b-instruct,qwen2.5:14b-instruct,llama3.1:8b-instruct

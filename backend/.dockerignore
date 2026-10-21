@@ -1,0 +1,8 @@
+# Контекст сборки backend-сервисов (Maven-агрегатор ./backend)
+**/target
+.git
+.idea
+.vscode
+*.log
+*.iml
+**/.DS_Store

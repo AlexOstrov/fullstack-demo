@@ -88,4 +88,18 @@ class OllamaClientTest {
                 .block();
         assertThat(tokens).containsExactly("Hello", " world");
     }
+
+    @Test
+    void chatStreamSendsMessagesArray() throws InterruptedException {
+        mockWebServer.enqueue(new MockResponse()
+                .setResponseCode(200)
+                .setHeader("Content-Type", "application/x-ndjson")
+                .setBody("{\"message\": {\"content\": \"ok\"}, \"done\": true}\n"));
+        ollamaClient.chatStream("qwen2.5:7b-instruct", "текст промпта").blockLast();
+        var request = mockWebServer.takeRequest();
+        String body = request.getBody().readUtf8();
+        // /api/chat в Ollama принимает только messages; поле prompt игнорируется (пустой ответ)
+        assertThat(body).contains("\"messages\"").contains("\"role\":\"user\"").contains("текст промпта");
+        assertThat(body).doesNotContain("\"prompt\"");
+    }
 }

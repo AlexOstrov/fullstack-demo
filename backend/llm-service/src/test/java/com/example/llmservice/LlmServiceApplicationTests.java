@@ -19,7 +19,7 @@ import static org.mockito.Mockito.when;
 @SpringBootTest
 @TestPropertySource(properties = {
         "app.llm.allowed-models=qwen2.5:7b-instruct,llama3.1:8b-instruct",
-        "app.llm.refresh-interval-ms=60000",
+        "app.llm.refresh-interval=60000",
         "llm.ollama.base-url=http://localhost:1"
 })
 class LlmServiceApplicationTests {
@@ -46,6 +46,11 @@ class LlmServiceApplicationTests {
         assertThat(llmProperties.model()).isEqualTo("qwen2.5:7b-instruct");
         assertThat(llmProperties.allowedModels()).containsExactly("qwen2.5:7b-instruct", "llama3.1:8b-instruct");
         assertThat(ollamaProperties.baseUrl()).isEqualTo("http://localhost:1");
+        // Таймауты должны биндиться из application.yml (иначе OllamaClient падает на null)
+        assertThat(ollamaProperties.connectTimeout()).isEqualTo(java.time.Duration.ofSeconds(5));
+        assertThat(ollamaProperties.chatTimeout()).isEqualTo(java.time.Duration.ofSeconds(30));
+        assertThat(ollamaProperties.tagsTimeout()).isEqualTo(java.time.Duration.ofSeconds(3));
+        assertThat(llmProperties.refreshInterval()).isEqualTo(java.time.Duration.ofSeconds(60));
         assertThat(modelCatalog).isNotNull();
     }
 

@@ -1,5 +1,5 @@
 ﻿services:
-  # PostgreSQL база данных
+  # PostgreSQL
   db:
     image: postgres:16-alpine
     container_name: fullstack-db
@@ -18,7 +18,8 @@
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  # Backend: game-service (API партии, порт 8080)
+  # game-service — API партии (порт 8080)
+  # Контекст ./backend: нужен Maven-агрегатор backend/pom.xml
   game-service:
     build:
       context: ./backend
@@ -38,9 +39,11 @@
       GAME_CLEANUP_INTERVAL_MS: 300000
       AI_TT_CAPACITY: 65536
       LLM_ENABLED: "true"
-      LLM_BASE_URL: http://llm-service:8081
+      # game-service читает адрес llm-service из llm.base-url = ${OLLAMA_BASE_URL}
+      OLLAMA_BASE_URL: http://llm-service:8081
+      LLM_TIMEOUT_MS: 20000
       LLM_MODEL: qwen2.5:7b-instruct
-      LLM_ALLOWED_MODELS: qwen2.5:7b-instruct,qwen2.5:3b-instruct,qwen3:4b,qwen3:8b
+      LLM_ALLOWED_MODELS: qwen2.5:7b-instruct,qwen2.5:14b-instruct,llama3.1:8b-instruct
     healthcheck:
       test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 30s
@@ -48,7 +51,7 @@
       retries: 3
       start_period: 60s
 
-  # LLM-сервис: прокси к Ollama (порт 8081)
+  # llm-service — прокси к Ollama (порт 8081)
   llm-service:
     build:
       context: ./backend
@@ -69,8 +72,11 @@
       retries: 3
       start_period: 30s
 
-  # Frontend: React приложение с nginx (порт 80)
+  # frontend — production-сборка (nginx, порт 80).
+  # В повседневной разработке frontend запускается на хосте: npm run dev (порт 5173)
+  # и без отдельного сервиса. Включается профилем: docker compose --profile prod up -d
   frontend:
+    profiles: ["prod"]
     build:
       context: ./frontend
       dockerfile: Dockerfile

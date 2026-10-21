@@ -57,7 +57,8 @@ cd backend
 
 Эндпоинты `llm-service` (базовый путь `/api`):
 - `GET /api/models` — список моделей (Ollama `/api/tags` ∩ `LLM_ALLOWED_MODELS`)
-- `POST /api/chat` (TEXT_EVENT_STREAM) — streaming чата к Ollama (`{"prompt": "...", "model": "..."}`)
+- `POST /api/chat` (TEXT_EVENT_STREAM) — комментарий от Ollama (`{"prompt": "...", "model": "..."}`);
+  токены склеиваются в одно SSE-событие `data:<текст>`, чтобы не терять пробелы между словами
 
 Альтернатива — jar (для быстрых smoke-проверок):
 
@@ -117,21 +118,52 @@ Get-NetTCPConnection -LocalPort 5173 -State Listen |
   ForEach-Object { Stop-Process -Id $_.OwningProcess }
 ```
 
-## Docker (все сервисы)
+## Docker (весь стек)
 
 ```powershell
 cd D:\projects\fullstack-demo
-docker compose up -d              # поднять все сервисы (db, game-service, llm-service, frontend)
+docker compose up -d              # db + game-service + llm-service (frontend НЕ входит — профиль prod)
 docker compose ps                 # статус/healthcheck
 docker compose logs -f            # логи всех сервисов
 docker compose down               # остановить все сервисы
 ```
 
 Доступ после запуска:
-- Frontend: http://localhost:80
 - Backend (game-service): http://localhost:8080
 - LLM-сервис (llm-service): http://localhost:8081
 - PostgreSQL: localhost:5432 (пользователь `app`, пароль `app`)
+- Frontend — в dev-режиме на хосте, см. раздел «Frontend (Vite, порт 5173)»
+
+### Frontend в Docker (production-сборка, по требованию)
+
+Frontend меняется чаще остальных сервисов, поэтому он вынесен в профиль `prod`
+и не пересобирается при обычном `docker compose up -d`:
+
+```powershell
+docker compose --profile prod up -d --build frontend   # сборка + запуск на http://localhost/
+docker compose --profile prod logs -f frontend
+docker compose --profile prod down                     # остановить весь стек вместе с frontend
+```
+
+### Как устроена сборка образов backend
+
+- Контекст сборки обоих сервисов — `./backend` (нужен Maven-агрегатор `backend/pom.xml`
+  со списком модулей). Dockerfile лежит в модуле: `game-service/Dockerfile` / `llm-service/Dockerfile`.
+- Базовый образ сборки — `maven:3.9-eclipse-temurin-21-alpine`; зависимости кэшируются
+  в BuildKit-кэше `~/.m2`, поэтому повторная сборка занимает секунды.
+- В образ копируются только `pom.xml` модулей и `src` целевого модуля; `**/target`
+  исключён через `backend/.dockerignore`.
+- Jar берётся из `<module>/target/` (сборка идёт с `-pl <module> -am`).
+- `frontend/Dockerfile` использует `node:22-alpine` и `npm ci` по `package-lock.json`
+  (`node_modules` и `dist` исключены через `frontend/.dockerignore`).
+
+### Пересборка после изменений
+
+```powershell
+docker compose build game-service      # только один сервис
+docker compose up -d game-service      # перезапуск с новым образом
+docker compose build --no-cache        # полная пересборка (если кэш «залип»)
+```
 
 Запуск только БД (без остальных сервисов):
 
@@ -182,6 +214,7 @@ $out = "protocol=https`nhost=github.com`n`n" | git credential fill
 - **БД:** `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`.
 - **Игра:** `GAME_TTL_MINUTES` (по умолчанию `60`), `GAME_CLEANUP_INTERVAL_MS` (`300000`) — TTL и период фонового вытеснения партий.
 - **ИИ:** `AI_TT_CAPACITY` (`65536`); пресеты — `AI_PRESET_EASY_DEPTH`/`AI_PRESET_EASY_TIME_BUDGET_MS`, `AI_PRESET_MEDIUM_*` (4/1500), `AI_PRESET_HARD_*` (6/3000). `CUSTOM` — глубина/бюджет из запроса (ТЗ 6.1).
-- **LLM (game-service — подключение к llm-service):** `LLM_ENABLED` (по умолчанию `true` — живой LLM через `llm-service`; `false` — только fallback), `LLM_TIMEOUT_MS` (по умолчанию `8000`), `OLLAMA_BASE_URL` (адрес llm-service, по умолчанию `http://localhost:8081`).
-- **LLM (llm-service — прокси к Ollama):** `OLLAMA_BASE_URL` (по умолчанию `http://localhost:11434`), `LLM_MODEL` (по умолчанию `qwen2.5:7b-instruct`), `LLM_ALLOWED_MODELS`, `LLM_REFRESH_INTERVAL_MS` (конфиг `llm.ollama.*` / `app.llm.*` в `backend/llm-service/src/main/resources/application.yml`).
-- Значения по умолчанию — в `backend/src/main/resources/application.yml`; переопределение — только env (секретов в репозитории нет).
+- **LLM (game-service — подключение к llm-service):** `LLM_ENABLED` (по умолчанию `true` — живой LLM через `llm-service`; `false` — только fallback), `LLM_TIMEOUT_MS` (по умолчанию `8000`; в Docker — `20000`, чтобы 7B-модель успевала ответить), `OLLAMA_BASE_URL` (адрес llm-service, по умолчанию `http://localhost:8081`; в Docker — `http://llm-service:8081`).
+- **LLM (llm-service — прокси к Ollama):** `OLLAMA_BASE_URL` (по умолчанию `http://localhost:11434`; в Docker — `http://host.docker.internal:11434`), `LLM_MODEL` (по умолчанию `qwen2.5:7b-instruct`), `LLM_ALLOWED_MODELS`, `LLM_REFRESH_INTERVAL_MS`, `LLM_CHAT_TIMEOUT` (Duration, по умолчанию `30s`) — конфиг `llm.ollama.*` / `app.llm.*` в `backend/llm-service/src/main/resources/application.yml`.
+- **Важно:** ключи длительностей в `llm-service` задаются как `Duration` (`5s`, `30s`, `3s`) или числом миллисекунд; суффикс `-ms` в имени ключа не использовать (иначе параметр не биндится и равен `null`).
+- Значения по умолчанию — в `backend/game-service/src/main/resources/application.yml` и `backend/llm-service/src/main/resources/application.yml`; переопределение — только env (секретов в репозитории нет).
