@@ -13,9 +13,20 @@ function cellName(row: number, col: number): string {
   return `${String.fromCharCode(97 + col)}${8 - row}`;
 }
 
+function isCaptureMove(move: MoveRecordDto): boolean {
+  for (let index = 1; index < move.path.length; index += 1) {
+    const prev = move.path[index - 1];
+    const next = move.path[index];
+    if (Math.abs(next.row - prev.row) > 1 || Math.abs(next.col - prev.col) > 1) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function notation(move: MoveRecordDto): string {
   if (move.path.length === 0) return "—";
-  const separator = move.type === "CAPTURE" ? "×" : "–";
+  const separator = isCaptureMove(move) ? "×" : "–";
   return move.path
     .map((cell) => cellName(cell.row, cell.col))
     .join(separator);

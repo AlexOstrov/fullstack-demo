@@ -85,7 +85,7 @@
 - S10.3 ✅ — настройки в левом сайдбаре: segmented-выбор цвета и сложности, поля глубины/бюджета для «Свои», стиль и модель LLM, всегда доступны, кнопка «Новая партия» (рестарт убран из блока управления). Файл: `frontend/src/components/game/SettingsPanel.tsx`, `GameControls.tsx`.
 - S10.4 ✅ — живой счёт шашек из токенов доски, карточки игроков с индикатором хода, история ходов через `GET /api/game/{id}/moves` в нотации `c3–d4`/`c3×e5`, статус с результатом и причиной окончания. Файлы: `frontend/src/App.tsx`, `frontend/src/components/game/{PlayerCard,MoveHistory,StatusBar}.tsx`.
 - S10.5 ✅ — исправлены дефекты: простые шашки (токены `w`/`b`) не выбирались (проверка искала только `W`/`B`), рестарт создавал вторую партию, при ходе ИИ подсвечивались его ходы, счёт был заглушкой «— : —», состояние лайка не синхронизировалось с новым комментарием; добавлена защита от устаревших ответов API. Файлы: `frontend/src/App.tsx`, `frontend/src/components/game/{Board,CommentaryBox}.tsx`, `frontend/src/components/game/tokens.ts`.
-- S10.6 ✅ — тесты: `App.test.tsx` (7), `App.game.test.tsx` (2), `Board.test.tsx` (6), `SettingsPanel.test.tsx` (7), `MoveHistory.test.tsx` (3), `tokens.test.ts` (3); удалён неиспользуемый стаб `components/Board.tsx`. Итог: `npm test` — **28/28**, `npm run build` — OK, e2e в браузере (старт за чёрных → ход ИИ → выбор шашки → ход человека → ответ ИИ с комментарием).
+- S10.6 ✅ — тесты: `App.test.tsx` (7), `App.game.test.tsx` (2), `Board.test.tsx` (6), `SettingsPanel.test.tsx` (7), `MoveHistory.test.tsx` (4), `tokens.test.ts` (3); удалён неиспользуемый стаб `components/Board.tsx`. Итог: `npm test` — **29/29**, `npm run build` — OK, e2e в браузере (старт за чёрных → ход ИИ → выбор шашки → ход человека → ответ ИИ с комментарием).
 
 ## Задачи Sprint 0 (завершён)
 
@@ -133,7 +133,7 @@
 
 - Все спринты (0–10) выполнены
 - Все фичи (F-001…F-025) реализованы и протестированы
-- Все тесты зелёные: backend **208/208** (game-service 191 + llm-service 17), frontend **28/28**
+- Все тесты зелёные: backend **208/208** (game-service 191 + llm-service 17), frontend **29/29**
 - Docker: `docker compose up -d` — db + game-service + llm-service (healthy); `docker compose --profile prod up -d` — добавляет frontend на http://localhost/ (после изменения UI образ frontend нужно пересобрать: `docker compose --profile prod build frontend`)
 - Критерии приёмки (раздел 13 ТЗ) выполнены
 - Бэкенд: 8080, Фронтенд: 5173 (dev) / 80 (Docker), LLM-сервис: 8081

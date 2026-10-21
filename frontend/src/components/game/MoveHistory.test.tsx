@@ -46,6 +46,26 @@ describe("MoveHistory", () => {
     expect(screen.getByText("дамка")).toBeInTheDocument();
   });
 
+  it("показывает взятие с превращением через ×", () => {
+    render(
+      <MoveHistory
+        moves={[
+          {
+            moveNumber: 1,
+            player: "BLACK",
+            type: "PROMOTION",
+            path: [
+              { row: 3, col: 2 },
+              { row: 1, col: 0 },
+            ],
+          },
+        ]}
+      />,
+    );
+    expect(screen.getByText("c5×a7")).toBeInTheDocument();
+    expect(screen.getByText("дамка")).toBeInTheDocument();
+  });
+
   it("показывает пустое состояние", () => {
     render(<MoveHistory moves={[]} />);
     expect(
