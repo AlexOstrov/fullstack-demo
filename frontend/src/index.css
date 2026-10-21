@@ -1,111 +1,210 @@
+/*
+ * Базовые токены темы и сброс стилей.
+ * Светлая и тёмная темы выбираются автоматически (prefers-color-scheme).
+ */
+
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
   color-scheme: light dark;
+
+  /* Поверхности */
+  --bg: #f3f5f8;
+  --surface: #ffffff;
+  --surface-2: #f6f7fa;
+  --surface-3: #eceff4;
+  --overlay: rgba(15, 22, 33, 0.45);
+
+  /* Текст */
+  --text: #303a48;
+  --text-strong: #0f1622;
+  --text-muted: #626d7d;
+  --text-faint: #8d97a6;
+
+  /* Границы */
+  --border: #e3e7ee;
+  --border-strong: #cfd6e1;
+
+  /* Акцент */
+  --accent: #0f7a6c;
+  --accent-hover: #0b655a;
+  --accent-soft: #e2f3ef;
+  --accent-contrast: #ffffff;
+
+  /* Семантические цвета */
+  --danger: #c0403a;
+  --danger-soft: #fdecea;
+  --warning: #a86400;
+  --warning-soft: #fdf1dd;
+  --success: #1c7a4d;
+
+  /* Доска и шашки */
+  --board-frame: #241a12;
+  --board-light: #ecd9b9;
+  --board-dark: #9a6b45;
+  --board-light-hover: #f4e6ca;
+  --board-dark-hover: #aa7a50;
+  --piece-white: radial-gradient(
+    circle at 32% 28%,
+    #ffffff 0%,
+    #f7f0e4 42%,
+    #decdb2 78%,
+    #c3ae8f 100%
+  );
+  --piece-white-edge: rgba(69, 48, 27, 0.35);
+  --piece-black: radial-gradient(
+    circle at 32% 28%,
+    #5f646d 0%,
+    #2c313a 45%,
+    #15191f 80%,
+    #090c10 100%
+  );
+  --piece-black-edge: rgba(255, 255, 255, 0.16);
+  --crown: #f0b23c;
+
+  /* Тени и радиусы */
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06),
+    0 1px 3px rgba(16, 24, 40, 0.05);
+  --shadow-md: 0 18px 40px -22px rgba(16, 24, 40, 0.45),
+    0 2px 6px rgba(16, 24, 40, 0.05);
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-xl: 24px;
+
+  /* Фоновые подсветки */
+  --glow-1: rgba(15, 122, 108, 0.09);
+  --glow-2: rgba(240, 178, 60, 0.12);
+
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas,
+    "Liberation Mono", monospace;
+
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--text);
-  background: var(--bg);
+  background-color: var(--bg);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
+    --bg: #0c0f13;
+    --surface: #151a20;
+    --surface-2: #1b2129;
+    --surface-3: #242c36;
+    --overlay: rgba(0, 0, 0, 0.6);
 
-  #social .button-icon {
-    filter: invert(1) brightness(2);
+    --text: #dbe2ec;
+    --text-strong: #f4f7fb;
+    --text-muted: #99a4b4;
+    --text-faint: #6f7a8a;
+
+    --border: #232c36;
+    --border-strong: #34414f;
+
+    --accent: #31c3af;
+    --accent-hover: #4bd6c2;
+    --accent-soft: rgba(49, 195, 175, 0.14);
+    --accent-contrast: #04201c;
+
+    --danger: #f07a72;
+    --danger-soft: rgba(240, 122, 114, 0.14);
+    --warning: #f2b357;
+    --warning-soft: rgba(242, 179, 87, 0.14);
+    --success: #58c78f;
+
+    --board-frame: #08090b;
+    --board-light: #d8c3a1;
+    --board-dark: #7b5637;
+    --board-light-hover: #e5d2b4;
+    --board-dark-hover: #8b6240;
+    --crown: #ffd166;
+
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --shadow-md: 0 24px 50px -24px rgba(0, 0, 0, 0.9),
+      0 2px 8px rgba(0, 0, 0, 0.4);
+
+    --glow-1: rgba(49, 195, 175, 0.08);
+    --glow-2: rgba(255, 209, 102, 0.06);
   }
 }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
+  min-height: 100dvh;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(900px 520px at 8% -8%, var(--glow-1), transparent 65%),
+    radial-gradient(760px 460px at 100% 0%, var(--glow-2), transparent 60%);
+  background-attachment: fixed;
+}
+
+#root {
+  min-height: 100dvh;
 }
 
 h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+h2,
+h3,
+h4 {
+  margin: 0;
+  color: var(--text-strong);
+  font-weight: 700;
+  letter-spacing: -0.015em;
 }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
-}
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
-}
 p {
   margin: 0;
 }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
 }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
+button {
+  cursor: pointer;
+}
+
+select,
+input {
+  accent-color: var(--accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--text-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

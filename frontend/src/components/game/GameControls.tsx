@@ -1,101 +1,78 @@
 /**
- * Управление игрой: сдача, ничья, рестарт.
+ * Управление партией: сдача и предложение ничьей.
+ * «Новая партия» находится в панели настроек.
  */
 
-import { useCallback } from "react";
-import { resign, offerDraw, restartGame } from "../../api/client";
-import type { StartGameRequest } from "../../api/types";
+import { useCallback, useState } from "react";
+import { offerDraw, resign } from "../../api/client";
+import type { GameStateResponse, GameStatus } from "../../api/types";
 
 interface GameControlsProps {
   gameId: string;
-  status: string;
-  endReason: string | null;
-  currentPlayerColor: string;
-  humanColor: string;
-  preferences: StartGameRequest;
-  onGameOver: () => void;
-  onRestart: (request: StartGameRequest) => void;
+  status: GameStatus;
+  canAct: boolean;
+  onStateUpdate: (state: GameStateResponse) => void;
+  onError: (message: string) => void;
 }
 
 export default function GameControls({
   gameId,
   status,
-  endReason,
-  currentPlayerColor,
-  humanColor,
-  preferences,
-  onGameOver,
-  onRestart,
+  canAct,
+  onStateUpdate,
+  onError,
 }: GameControlsProps) {
+  const [busy, setBusy] = useState(false);
   const isFinished = status !== "IN_PROGRESS";
-  const isHumanTurn = currentPlayerColor === humanColor;
 
   const handleResign = useCallback(async () => {
+    if (!gameId) return;
+    setBusy(true);
     try {
-      await resign(gameId);
-      onGameOver();
-    } catch {
-      // ignore
+      const state = await resign(gameId);
+      onStateUpdate(state);
+    } catch (err) {
+      onError(err instanceof Error ? err.message : "Не удалось сдать партию");
+    } finally {
+      setBusy(false);
     }
-  }, [gameId, onGameOver]);
+  }, [gameId, onStateUpdate, onError]);
 
   const handleDraw = useCallback(async () => {
+    if (!gameId) return;
+    setBusy(true);
     try {
       const result = await offerDraw(gameId);
-      if (result.accepted) {
-        onGameOver();
-      }
-    } catch {
-      // ignore
+      onStateUpdate(result.game);
+    } catch (err) {
+      onError(
+        err instanceof Error ? err.message : "Не удалось предложить ничью",
+      );
+    } finally {
+      setBusy(false);
     }
-  }, [gameId, onGameOver]);
+  }, [gameId, onStateUpdate, onError]);
 
-  const handleRestart = useCallback(async () => {
-    try {
-      await restartGame(gameId, preferences);
-      onRestart(preferences);
-    } catch {
-      // ignore
-    }
-  }, [gameId, preferences, onRestart]);
+  const disabled = isFinished || !canAct || busy;
 
   return (
     <div className="game-controls">
       <button
-        className="button button--resign"
-        disabled={isFinished || !isHumanTurn}
-        onClick={handleResign}
+        type="button"
+        className="button button--danger"
+        disabled={disabled}
+        onClick={() => void handleResign()}
       >
         Сдаться
       </button>
       <button
-        className="button button--draw"
-        disabled={isFinished || !isHumanTurn}
-        onClick={handleDraw}
+        type="button"
+        className="button"
+        disabled={disabled}
+        onClick={() => void handleDraw()}
       >
         Ничья
       </button>
-      <button
-        className="button button--restart"
-        onClick={handleRestart}
-      >
-        Заново
-      </button>
-      {isFinished && (
-        <span className="game-status">
-          {endReason === "RESIGN"
-            ? currentPlayerColor === humanColor
-              ? "Вы сдались — победа ИИ"
-              : "ИИ сдался — ваша победа"
-            : endReason === "DRAW_AGREEMENT"
-            ? "Ничья по согласию"
-            : endReason === "DRAW_REPETITION"
-            ? "Ничья — троекратное повторение"
-            : endReason === "DRAW_KINGS"
-            ? "Ничья — только дамки"
-            : "Игра окончена"}
-        </span>
-      )}
     </div>
   );
 }

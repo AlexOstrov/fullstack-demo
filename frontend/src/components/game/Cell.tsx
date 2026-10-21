@@ -1,34 +1,48 @@
 /**
  * Одна клетка доски с шашкой (или без).
- * Подсветка: выбранная клетка, допустимый ход, взятие, анимация перемещения.
+ * Подсветка: выбранная клетка, допустимый ход, взятие, последний ход,
+ * анимация перемещения и появление короны при превращении.
  */
+
+import type { CSSProperties } from "react";
+import CrownIcon from "./CrownIcon";
+
+export type PieceType =
+  | "WHITE_MAN"
+  | "BLACK_MAN"
+  | "WHITE_KING"
+  | "BLACK_KING";
 
 interface CellProps {
   row: number;
   col: number;
-  piece: "EMPTY" | "WHITE_MAN" | "BLACK_MAN" | "WHITE_KING" | "BLACK_KING" | null;
+  piece: PieceType | null;
   isDark: boolean;
   isSelected: boolean;
   isLegalMove: boolean;
   isCapture: boolean;
+  isLastMove: boolean;
   isAnimatingFrom: boolean;
   isAnimatingTo: boolean;
-  animToRow: number;
-  animToCol: number;
   animationType: "move" | "capture" | "promote" | null;
+  /** Смещение анимации в клетках (в экранных координатах, с учётом переворота). */
+  animDx: number;
+  animDy: number;
+  interactive: boolean;
   onClick: (row: number, col: number) => void;
 }
 
-const PIECE_LABEL: Record<string, string> = {
+const PIECE_LABEL: Record<PieceType, string> = {
   WHITE_MAN: "белая шашка",
   BLACK_MAN: "чёрная шашка",
   WHITE_KING: "белая дамка",
   BLACK_KING: "чёрная дамка",
 };
 
-// Размер клетки при максимальной ширине доски (560px / 8 = 70px)
-// Используется для расчёта смещения при анимации перемещения
-const CELL_SIZE = 70;
+/** Шахматная нотация клетки: столбцы a–h, горизонтали 1–8. */
+function squareName(row: number, col: number): string {
+  return `${String.fromCharCode(97 + col)}${8 - row}`;
+}
 
 export default function Cell({
   row,
@@ -38,57 +52,67 @@ export default function Cell({
   isSelected,
   isLegalMove,
   isCapture,
+  isLastMove,
   isAnimatingFrom,
   isAnimatingTo,
-  animToRow,
-  animToCol,
   animationType,
+  animDx,
+  animDy,
+  interactive,
   onClick,
 }: CellProps) {
-  const label = String.fromCharCode(97 + col) + (8 - row);
-  const hasPiece = piece !== null && piece !== "EMPTY";
+  const label = squareName(row, col);
+  const hasPiece = piece !== null;
+  const color = piece?.startsWith("WHITE") ? "white" : "black";
+  const isKing = Boolean(piece?.endsWith("_KING"));
 
-  // Вычисляем смещение для анимации перемещения шашки
-  const dx = isAnimatingFrom ? (animToCol - col) * CELL_SIZE : 0;
-  const dy = isAnimatingFrom ? (animToRow - row) * CELL_SIZE : 0;
+  const pieceClass = [
+    "piece",
+    `piece--${color}`,
+    isKing ? "piece--king" : "",
+    isAnimatingFrom && animationType === "capture" ? "piece--jump" : "",
+    isAnimatingFrom && animationType === "promote" ? "piece--promoting" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  const pieceStyle = isAnimatingFrom
-    ? {
-        "--dx": `${dx}px`,
-        "--dy": `${dy}px`,
-        animation: `movePiece 300ms ease-out forwards`,
-      }
+  const animationStyle = isAnimatingFrom
+    ? ({
+        "--dx": `${animDx * 100}%`,
+        "--dy": `${animDy * 100}%`,
+      } as CSSProperties)
     : undefined;
 
+  const className = [
+    "board__cell",
+    isDark ? "board__cell--dark" : "board__cell--light",
+    isSelected ? "board__cell--selected" : "",
+    isLegalMove ? "board__cell--legal" : "",
+    isCapture ? "board__cell--capture" : "",
+    isLastMove ? "board__cell--last-move" : "",
+    isAnimatingFrom ? "board__cell--animating-from" : "",
+    isAnimatingTo ? "board__cell--animating-to" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div
+    <button
+      type="button"
       role="gridcell"
       aria-label={`клетка ${label}${hasPiece ? `, ${PIECE_LABEL[piece]}` : ""}`}
-      className={
-        "board__cell " +
-        (isDark ? "board__cell--dark" : "board__cell--light") +
-        (isSelected ? " board__cell--selected" : "") +
-        (isLegalMove ? " board__cell--legal" : "") +
-        (isCapture ? " board__cell--capture" : "") +
-        (isAnimatingFrom ? " board__cell--animating-from" : "") +
-        (isAnimatingTo ? " board__cell--animating-to" : "")
-      }
-      onClick={(e) => {
-        e.stopPropagation();
-        onClick(row, col);
-      }}
+      className={className}
+      style={animationStyle}
+      disabled={!interactive}
+      onClick={() => onClick(row, col)}
     >
-      {piece && piece !== "EMPTY" && (
-        <span
-          className={`piece piece--${piece.split("_")[0].toLowerCase()}${
-            piece.endsWith("_KING") ? " piece--king" : ""
-          }${animationType === "promote" ? " piece--promoting" : ""}${
-            animationType === "capture" ? " piece--capture-jump" : ""
-          }`}
-          style={pieceStyle}
-          aria-hidden="true"
-        />
+      {hasPiece && (
+        <span className={pieceClass} aria-hidden="true">
+          <span className="piece__body">
+            {isKing && <CrownIcon className="piece__crown" />}
+          </span>
+        </span>
       )}
-    </div>
+    </button>
   );
 }
