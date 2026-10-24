@@ -18,8 +18,8 @@ docker exec -it fullstack-db psql -U app -d app -c "select * from tournament ord
 docker exec -it fullstack-db psql -U app -d app -c "select * from llm_comments order by id desc limit 5;"
 ```
 
-Миграции: `V1` (демо `items`, затем удалена), `V2__drop_items`, `V3__create_tournament`, `V4__create_llm_comments`.
-Живые партии в БД не хранятся (ADR-0001) — только результаты завершённых (`tournament`) и избранные комментарии (`llm_comments`, запись — бэклог B2).
+Миграции: `V1` (демо `items`, затем удалена), `V2__drop_items`, `V3__create_tournament`, `V4__create_llm_comments`, `V5__add_game_id_to_llm_comments`, `V6__add_liked_to_llm_comments`.
+Живые партии в БД не хранятся (ADR-0001) — только результаты завершённых (`tournament`) и комментарии LLM с лайком (`llm_comments`).
 
 ## Ollama (модель-комментатор)
 
@@ -72,6 +72,7 @@ Smoke-проверка (API партии, ТЗ 5) и остановка:
 
 ```powershell
 (Invoke-WebRequest http://localhost:8080/api/config/llm-models -UseBasicParsing).Content       # список моделей LLM
+Invoke-RestMethod http://localhost:8080/api/tournament                                          # статистика побед: humanWins/aiWins/draws/total
 
 $start = Invoke-RestMethod -Method Post http://localhost:8080/api/game/start `
   -ContentType 'application/json' `
@@ -98,9 +99,17 @@ Get-NetTCPConnection -LocalPort 8080 -State Listen |
 | POST | `/api/game/{id}/draw` | Предложить ничью (решает ИИ) → `{accepted, game}` |
 | POST | `/api/game/{id}/restart` | Новая партия (новый `gameId`); без тела — с прежними настройками |
 | GET | `/api/config/llm-models` | Список моделей LLM для UI |
+| GET | `/api/tournament` | Статистика завершённых партий: `humanWins`, `aiWins`, `draws`, `total` (агрегат `tournament`) |
 
 Коды ошибок: `GAME_NOT_FOUND` (404), `AI_BUSY`/`STALE_STATE` (409), `NOT_YOUR_TURN`/`INVALID_MOVE`/`GAME_FINISHED`/`VALIDATION_ERROR` (400), `INTERNAL_ERROR` (500).
 Результат завершённой партии сохраняется в `tournament` автоматически (best-effort, ТЗ 4.7).
+`GET /api/tournament` — агрегат по `winner`; UI («Счёт побед») обновляет его после завершения партии.
+
+### Комментарий LLM и fallback
+
+- Промпт требует русский язык и нотацию `c3–d4`/`c3×e5`; ответ проходит `CommentTextSanitizer` (иероглифы, английские слова вне нотации, markdown, длина > 400 символов отбрасываются).
+- При недоступности/таймауте LLM или непригодном ответе fallback берёт случайный сохранённый комментарий того же стиля из `llm_comments` (`liked = true`, `llm_model IS NOT NULL`); если записей нет/БД недоступна — детерминированная фраза.
+- Проверить сохранённые комментарии: `select style, left(comment, 60) from llm_comments where liked order by id desc limit 10;`
 
 ## Frontend (Vite, порт 5173)
 

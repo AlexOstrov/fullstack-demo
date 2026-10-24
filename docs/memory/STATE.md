@@ -5,10 +5,10 @@
 ## Сейчас
 
 - ТЗ: **финализировано (v2.4)** — `game-chashki-TZ.md`
-- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси и интеграция** — завершён (S4.1–S4.5); **Sprint 5 — Frontend: игровой цикл** — завершён (S5.1–S5.6); **Sprint 6 — Анимации и визуальная подача** — завершён (S6.1–S6.2); **Sprint 7 — Docker и интеграция** — завершён (S7.1–S7.3); **Sprint 8 — Стабилизация и приёмка** — завершён (S8.1–S8.4); **Sprint 9 — Стабилизация Docker-запуска** — завершён (S9.1–S9.4); **Sprint 10 — UI/UX-редизайн** — завершён (S10, F-025)
-- Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; R-1 исправлено (F-012); R-3/R-4 закрыты в S3 (env-настройки `AI_PRESET_*`, маппинг `CUSTOM`); R-2/R-5/R-6/R-7 → бэклог **B4** (R-5 закрыт в S4.3)
+- Спринт: **Sprint 3 — API, in-memory реестр и персистентность**, ✅ **завершён** (S3.1–S3.6); **Sprint 4 — LLM-прокси и интеграция** — завершён (S4.1–S4.5); **Sprint 5 — Frontend: игровой цикл** — завершён (S5.1–S5.6); **Sprint 6 — Анимации и визуальная подача** — завершён (S6.1–S6.2); **Sprint 7 — Docker и интеграция** — завершён (S7.1–S7.3); **Sprint 8 — Стабилизация и приёмка** — завершён (S8.1–S8.4); **Sprint 9 — Стабилизация Docker-запуска** — завершён (S9.1–S9.4); **Sprint 10 — UI/UX-редизайн** — завершён (S10, F-025); **Бэклог B1–B5** — ✅ **закрыт** (F-026–F-029)
+- Ревью Sprint 0–2: ✅ **проведено** — `docs/memory/REVIEW-sprint-0-2.md`; R-1 исправлено (F-012); R-3/R-4 закрыты в S3; R-5 закрыт в S4.3; R-2/R-6/R-7 закрыты в B4
 - В работе: —
-- Следующая задача: — (спринты 0–10 завершены; открытые идеи — B1, B3, B5, остаток B4 в `BACKLOG.md`)
+- Следующая задача: — (спринты 0–10 и бэклог B1–B5 завершены; открытых идей нет)
 
 ## Задачи Sprint 1 (ТЗ, раздел 14) — все выполнены
 
@@ -87,6 +87,13 @@
 - S10.5 ✅ — исправлены дефекты: простые шашки (токены `w`/`b`) не выбирались (проверка искала только `W`/`B`), рестарт создавал вторую партию, при ходе ИИ подсвечивались его ходы, счёт был заглушкой «— : —», состояние лайка не синхронизировалось с новым комментарием; добавлена защита от устаревших ответов API. Файлы: `frontend/src/App.tsx`, `frontend/src/components/game/{Board,CommentaryBox}.tsx`, `frontend/src/components/game/tokens.ts`.
 - S10.6 ✅ — тесты: `App.test.tsx` (7), `App.game.test.tsx` (2), `Board.test.tsx` (6), `SettingsPanel.test.tsx` (7), `MoveHistory.test.tsx` (4), `tokens.test.ts` (3); удалён неиспользуемый стаб `components/Board.tsx`. Итог: `npm test` — **29/29**, `npm run build` — OK, e2e в браузере (старт за чёрных → ход ИИ → выбор шашки → ход человека → ответ ИИ с комментарием).
 
+## Бэклог B1–B5 — завершён
+
+- B1 ✅ — статистика побед «человек / ИИ»: `GET /api/tournament` (агрегат `tournament` по победителю), `TournamentStatsService`/`TournamentController`, блок «Счёт побед» в левом сайдбаре с обновлением после завершения партии. Файлы: `backend/game-service/src/main/java/com/example/backend/{controller/TournamentController,service/TournamentStatsService,dto/game/TournamentStatsResponse,dto/game/WinnerCount}.java`, `repository/TournamentRepository.java`, `frontend/src/components/game/StatsPanel.tsx`, `frontend/src/{App.tsx,App.css,api/client.ts,api/types.ts}`. (коммит `7d2597f`)
+- B3 ✅ — случайный сохранённый комментарий из `llm_comments` как fallback: `LlmCommentRepository.findByStyleAndLikedTrueAndLlmModelIsNotNull`, выбор в `FallbackCommentProvider`, best-effort при недоступной БД; генератор — `SplittableRandom` (в JRE-образе `RandomGenerator.getDefault()` падал: нет алгоритма `L32X64MixRandom`). (коммиты `17d1e19`, `e207892`)
+- B4 ✅ — R-2/R-6/R-7: статическая оценка выбранного хода при `depth = 0`, отказ от копирования доски в DFS взятий (мутация с откатом), `LongSupplier` для детерминированного таймаута, бенчмарк плотного миттельшпиля и профиль `PositionEvaluator` (~1.6 µs/eval). Файлы: `MoveGenerator.java`, `AlphaBetaSearch.java`, тесты `MoveGeneratorTest`, `AlphaBetaSearchTest`, `AiPerformanceBenchmarkTest`. (коммит `74770d2`)
+- B5 ✅ — русский пост-фильтр и нотация: `CommentTextSanitizer` (иероглифы/английские слова/разметка/длина), промпт с `c3–d4`/`c3×e5` и запретом «строка/столбец», отбраковка ответа → fallback. (коммиты `17d1e19`, `e207892`)
+
 ## Задачи Sprint 0 (завершён)
 
 - S0.1 ✅ — backend: чистка дублей вне `src`, слияние конфигов, запуск + подключение к `db`. (коммит `2d6ce68`)
@@ -128,12 +135,16 @@
 | F-023 | Docker и интеграция | Done | S7.1–S7.3 |
 | F-024 | Стабилизация Docker-запуска и дефекты интеграции LLM | Done | S9.1–S9.4 |
 | F-025 | UI/UX-редизайн: макет, доска, тема | Done | S10.1–S10.6 |
+| F-026 | B4: R-2/R-6/R-7 — оценка при таймауте, DFS без копий, профиль | Done | `74770d2` |
+| F-027 | B3: сохранённый комментарий как fallback | Done | `17d1e19`, `e207892` |
+| F-028 | B5: русский пост-фильтр и нотация в промпте | Done | `17d1e19`, `e207892` |
+| F-029 | B1: статистика побед и блок в UI | Done | `7d2597f` |
 
 ## Статус проекта: ВСЕ ЗАДАЧИ ЗАВЕРШЕНЫ ✅
 
-- Все спринты (0–10) выполнены
-- Все фичи (F-001…F-025) реализованы и протестированы
-- Все тесты зелёные: backend **208/208** (game-service 191 + llm-service 17), frontend **29/29**
+- Все спринты (0–10) и бэклог B1–B5 выполнены
+- Все фичи (F-001…F-029) реализованы и протестированы
+- Все тесты зелёные: backend **234/234** (game-service 217 + llm-service 17), frontend **35/35**
 - Docker: `docker compose up -d` — db + game-service + llm-service (healthy); `docker compose --profile prod up -d` — добавляет frontend на http://localhost/ (после изменения UI образ frontend нужно пересобрать: `docker compose --profile prod build frontend`)
 - Критерии приёмки (раздел 13 ТЗ) выполнены
 - Бэкенд: 8080, Фронтенд: 5173 (dev) / 80 (Docker), LLM-сервис: 8081
