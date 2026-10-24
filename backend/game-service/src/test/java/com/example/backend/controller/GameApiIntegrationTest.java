@@ -1,6 +1,8 @@
 package com.example.backend.controller;
 
+import com.example.backend.model.LlmCommentEntity;
 import com.example.backend.model.Tournament;
+import com.example.backend.repository.LlmCommentRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
@@ -12,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -41,6 +44,9 @@ class GameApiIntegrationTest {
 
     @Autowired
     private TournamentRepository tournamentRepository;
+
+    @Autowired
+    private LlmCommentRepository llmCommentRepository;
 
     @Test
     void startReturnsInitialState() throws Exception {
@@ -206,6 +212,39 @@ class GameApiIntegrationTest {
         Tournament saved = tournamentRepository.findByGameId(UUID.fromString(gameId)).orElseThrow();
         assertEquals("DRAW", saved.getWinner());
         assertNull(saved.getWinnerColor());
+    }
+
+    @Test
+    void tournamentStatsEndpointAggregatesPersistedResults() throws Exception {
+        String gameId = startGame("WHITE", "EASY", null, null);
+        mockMvc.perform(post("/api/game/{id}/resign", gameId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("BLACK_WON"));
+
+        String json = mockMvc.perform(get("/api/tournament"))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(StandardCharsets.UTF_8);
+
+        Number humanWins = JsonPath.read(json, "$.humanWins");
+        Number aiWins = JsonPath.read(json, "$.aiWins");
+        Number draws = JsonPath.read(json, "$.draws");
+        Number total = JsonPath.read(json, "$.total");
+        assertEquals(total.longValue(), humanWins.longValue() + aiWins.longValue() + draws.longValue());
+        assertTrue(aiWins.longValue() >= 1, "сдача человека засчитывается как победа ИИ");
+        assertTrue(total.longValue() >= 1);
+    }
+
+    @Test
+    void llmCommentRepositoryFindsLikedLiveCommentsByStyle() {
+        LlmCommentEntity saved = llmCommentRepository.save(new LlmCommentEntity(
+                UUID.randomUUID(), "Сохранённый комментарий для fallback.",
+                "neutral", "neutral", DEFAULT_MODEL, 2, Instant.now()));
+
+        boolean found = llmCommentRepository.findByStyleAndLikedTrueAndLlmModelIsNotNull("neutral")
+                .stream()
+                .anyMatch(entity -> saved.getId().equals(entity.getId()));
+
+        assertTrue(found, "сохранённый комментарий должен выбираться для fallback (B3)");
     }
 
     private Tournament savedTournament(String gameId) {

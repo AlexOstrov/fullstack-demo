@@ -12,6 +12,7 @@ export type {
   MoveRequest,
   MovesResponse,
   StartGameRequest,
+  TournamentStatsResponse,
 } from "./types";
 
 import type {
@@ -22,6 +23,7 @@ import type {
   MoveRequest,
   MovesResponse,
   StartGameRequest,
+  TournamentStatsResponse,
 } from "./types";
 
 /** Базовый путь API (проксируется Vite на http://localhost:8080). */
@@ -159,6 +161,11 @@ export async function restartGame(
 /** GET /api/config/llm-models — список моделей LLM. */
 export async function getLlmModels(): Promise<LlmModelsResponse> {
   return apiRequest<LlmModelsResponse>("/config/llm-models");
+}
+
+/** GET /api/tournament — статистика завершённых партий (B1). */
+export async function getTournamentStats(): Promise<TournamentStatsResponse> {
+  return apiRequest<TournamentStatsResponse>("/tournament");
 }
 
 /** POST /api/game/{id}/comments/{commentId}/like — лайк комментария. */

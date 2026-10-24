@@ -47,6 +47,13 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("показывает блок статистики побед", () => {
+    render(<App />);
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Счёт побед" }),
+    ).toBeInTheDocument();
+  });
+
   it("не содержит демо-интерфейса items", () => {
     const { container } = render(<App />);
     expect(container.querySelector("table")).toBeNull();

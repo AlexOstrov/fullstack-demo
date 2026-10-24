@@ -104,6 +104,14 @@ export interface LlmModelsResponse {
   defaultModel: string;
 }
 
+/** Статистика завершённых партий (B1). */
+export interface TournamentStatsResponse {
+  humanWins: number;
+  aiWins: number;
+  draws: number;
+  total: number;
+}
+
 /** Комментарий в истории. */
 export interface CommentDto {
   id: number | null;

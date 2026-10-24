@@ -13,6 +13,7 @@ vi.mock("./api/client", () => ({
   offerDraw: vi.fn(),
   restartGame: vi.fn(),
   getLlmModels: vi.fn(),
+  getTournamentStats: vi.fn(),
   likeComment: vi.fn(),
 }));
 
@@ -54,11 +55,18 @@ const gameState: GameStateResponse = {
 
 describe("App: игровой цикл", () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     vi.mocked(client.getLlmModels).mockResolvedValue({
       models: ["qwen2.5:7b-instruct"],
       defaultModel: "qwen2.5:7b-instruct",
     });
     vi.mocked(client.getMoves).mockResolvedValue({ moves: [], comments: [] });
+    vi.mocked(client.getTournamentStats).mockResolvedValue({
+      humanWins: 0,
+      aiWins: 0,
+      draws: 0,
+      total: 0,
+    });
     vi.mocked(client.startGame).mockResolvedValue(gameState);
   });
 
@@ -97,6 +105,22 @@ describe("App: игровой цикл", () => {
     fireEvent.click(piece());
     await waitFor(() =>
       expect(piece()).not.toHaveClass("board__cell--selected"),
+    );
+  });
+
+  it("обновляет статистику после завершения партии", async () => {
+    vi.mocked(client.startGame).mockResolvedValue({
+      ...gameState,
+      status: "WHITE_WON",
+      endReason: "RESIGN",
+    });
+
+    render(<App />);
+    fireEvent.click(screen.getByRole("button", { name: /Начать партию/ }));
+    await screen.findByRole("button", { name: /Начать новую партию/ });
+
+    await waitFor(() =>
+      expect(client.getTournamentStats).toHaveBeenCalledTimes(2),
     );
   });
 });

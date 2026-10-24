@@ -4,6 +4,7 @@ import "./App.css";
 import {
   getLlmModels,
   getMoves,
+  getTournamentStats,
   makeAiMove,
   makeMove,
   startGame,
@@ -14,6 +15,7 @@ import type {
   MoveRecordDto,
   PlayerColor,
   StartGameRequest,
+  TournamentStatsResponse,
 } from "./api/types";
 import Board from "./components/game/Board";
 import CommentaryBox from "./components/game/CommentaryBox";
@@ -22,6 +24,7 @@ import GameControls from "./components/game/GameControls";
 import MoveHistory from "./components/game/MoveHistory";
 import PlayerCard from "./components/game/PlayerCard";
 import SettingsPanel from "./components/game/SettingsPanel";
+import StatsPanel from "./components/game/StatsPanel";
 import StatusBar from "./components/game/StatusBar";
 import { isOwnPieceToken } from "./components/game/tokens";
 
@@ -148,6 +151,9 @@ export default function App() {
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
   const [history, setHistory] = useState<MoveRecordDto[]>([]);
+  const [stats, setStats] = useState<TournamentStatsResponse | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const animationRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -188,6 +194,28 @@ export default function App() {
       })
       .finally(() => setIsLoadingModels(false));
   }, []);
+
+  /** Загрузить статистику завершённых партий (B1). */
+  const refreshStats = useCallback(async () => {
+    setIsLoadingStats(true);
+    try {
+      const response = await getTournamentStats();
+      setStats(response);
+      setStatsError(null);
+    } catch (err) {
+      setStatsError(
+        err instanceof Error
+          ? `Статистика недоступна: ${err.message}`
+          : "Статистика недоступна",
+      );
+    } finally {
+      setIsLoadingStats(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshStats();
+  }, [refreshStats]);
 
   /** Начать новую партию с выбранными настройками. */
   const startNewGame = useCallback(async (prefs: StartGameRequest) => {
@@ -401,6 +429,15 @@ export default function App() {
   const isHumanTurn = currentPlayerColor === humanColor;
   const isAiThinking = inProgress && !isHumanTurn;
   const canInteract = inProgress && isHumanTurn;
+  const isFinished = gameState !== null && status !== "IN_PROGRESS";
+
+  // Статистика меняется только по завершении партии — обновляем после результата.
+  useEffect(() => {
+    if (isFinished) {
+      void refreshStats();
+    }
+  }, [isFinished, refreshStats]);
+
   const activePrefs = gameState ? gamePrefs : settings;
   const colorLabel = (color: PlayerColor) =>
     color === "WHITE" ? "Белые" : "Чёрные";
@@ -479,6 +516,12 @@ export default function App() {
             hasActiveGame={gameState !== null}
             onSettingsChange={setSettings}
             onStartGame={startNewGame}
+          />
+          <StatsPanel
+            stats={stats}
+            isLoading={isLoadingStats}
+            error={statsError}
+            onRefresh={refreshStats}
           />
         </aside>
 

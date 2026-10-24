@@ -262,6 +262,9 @@
   grid-area: settings;
   position: sticky;
   top: 86px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -526,6 +529,131 @@
   line-height: 1.45;
   color: var(--text-faint);
   text-align: center;
+}
+
+/* ---------- Статистика побед (B1) ---------- */
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.stats__refresh {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.stats__refresh:hover:not(:disabled) {
+  color: var(--accent);
+}
+
+.stats__refresh:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.stats__empty,
+.stats__error {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.stats__empty {
+  color: var(--text-faint);
+}
+
+.stats__error {
+  color: var(--danger);
+}
+
+.stats__bar {
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.stats__bar-part {
+  flex-basis: 0;
+  min-width: 0;
+}
+
+.stats__bar-part--human {
+  background: var(--accent);
+}
+
+.stats__bar-part--ai {
+  background: var(--danger);
+}
+
+.stats__bar-part--draw {
+  background: var(--text-faint);
+}
+
+.stats__list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+}
+
+.stats__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stats__row dt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.stats__row dd {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-strong);
+}
+
+.stats__dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.stats__dot--human {
+  background: var(--accent);
+}
+
+.stats__dot--ai {
+  background: var(--danger);
+}
+
+.stats__dot--draw {
+  background: var(--text-faint);
+}
+
+.stats__total {
+  margin: 0;
+  font-size: 0.74rem;
+  color: var(--text-faint);
 }
 
 /* ---------- Доска ---------- */
