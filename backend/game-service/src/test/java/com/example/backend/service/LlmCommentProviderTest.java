@@ -12,12 +12,16 @@ import com.example.backend.game.GameState;
 import com.example.backend.game.LlmComment;
 import com.example.backend.game.Move;
 import com.example.backend.game.MoveType;
+import com.example.backend.model.LlmCommentEntity;
+import com.example.backend.repository.LlmCommentRepository;
 import com.example.backend.session.GamePreferences;
 import com.example.backend.session.GameSession;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -197,5 +201,76 @@ class LlmCommentProviderTest {
                     new Move(List.of(new Cell(6, 4), new Cell(4, 4)), MoveType.NORMAL));
             assertThat(c.liked()).as("liked for " + style).isTrue();
         }
+    }
+
+    @Test
+    void foreignScriptResponseIsRejectedAndStoredCommentUsed() {
+        LlmServiceClient client = mock(LlmServiceClient.class);
+        when(client.chat(anyString(), anyString()))
+                .thenReturn("Отличный ход! 但是 это уже не по-русски.");
+        LlmCommentRepository repository = mock(LlmCommentRepository.class);
+        when(repository.findByStyleAndLikedTrueAndLlmModelIsNotNull("competitive"))
+                .thenReturn(List.of(new LlmCommentEntity(
+                        UUID.randomUUID(), "Сохранённая реплика из прошлой партии.",
+                        "competitive", "confident", "qwen2.5:7b-instruct", 7, Instant.now())));
+        FallbackCommentProvider fallback = new FallbackCommentProvider(repository, new Random(3));
+        LlmCommentProvider provider = new LlmCommentProvider(
+                client, llmProperties(true, "qwen2.5:7b-instruct", 8000), fallback);
+
+        LlmComment comment = provider.comment(
+                session(Color.BLACK, CommentaryStyle.COMPETITIVE, "qwen2.5:7b-instruct"),
+                new Move(List.of(new Cell(6, 4), new Cell(4, 4)), MoveType.NORMAL));
+
+        assertThat(comment.fallback()).isTrue();
+        assertThat(comment.model()).isNull();
+        assertThat(comment.text()).isEqualTo("Сохранённая реплика из прошлой партии.");
+    }
+
+    @Test
+    void sanitizesQuotedMarkdownResponse() {
+        LlmServiceClient client = mock(LlmServiceClient.class);
+        when(client.chat(anyString(), anyString())).thenReturn("«**Отличный ход!**»");
+        LlmCommentProvider provider = new LlmCommentProvider(
+                client, llmProperties(true, "qwen2.5:7b-instruct", 8000),
+                new FallbackCommentProvider());
+
+        LlmComment comment = provider.comment(
+                session(Color.WHITE, CommentaryStyle.NEUTRAL, "qwen2.5:7b-instruct"),
+                new Move(List.of(new Cell(6, 4), new Cell(4, 4)), MoveType.NORMAL));
+
+        assertThat(comment.fallback()).isFalse();
+        assertThat(comment.text()).isEqualTo("Отличный ход!");
+    }
+
+    @Test
+    void promptUsesAlgebraicNotationAndRequiresRussian() {
+        LlmServiceClient client = mock(LlmServiceClient.class);
+        when(client.chat(anyString(), anyString())).thenReturn("комментарий");
+        LlmCommentProvider provider = new LlmCommentProvider(
+                client, llmProperties(true, "qwen2.5:7b-instruct", 8000),
+                new FallbackCommentProvider());
+
+        Move move = new Move(List.of(new Cell(6, 4), new Cell(5, 3)), MoveType.NORMAL);
+        provider.comment(session(Color.WHITE, CommentaryStyle.NEUTRAL, "qwen2.5:7b-instruct"), move);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(String.class);
+        verify(client).chat(captor.capture(), org.mockito.ArgumentMatchers.eq("qwen2.5:7b-instruct"));
+        String prompt = captor.getValue();
+        assertThat(prompt).contains("ТОЛЬКО по-русски");
+        assertThat(prompt).contains("e2–d3");
+        assertThat(prompt).contains("c3–d4");
+        assertThat(prompt).contains("c3×e5");
+        assertThat(prompt).contains("не пиши «строка», «столбец»");
+        assertThat(prompt).contains("a b c d e f g h");
+    }
+
+    @Test
+    void moveNotationUsesCrossForCaptureAndDashForQuietMove() {
+        assertThat(LlmCommentProvider.moveNotation(
+                new Move(List.of(new Cell(2, 1), new Cell(4, 3)), MoveType.CAPTURE)))
+                .isEqualTo("b6×d4");
+        assertThat(LlmCommentProvider.moveNotation(
+                new Move(List.of(new Cell(1, 0), new Cell(0, 1)), MoveType.PROMOTION)))
+                .isEqualTo("a7–b8");
     }
 }

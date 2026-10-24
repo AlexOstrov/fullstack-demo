@@ -2,7 +2,9 @@ package com.example.backend.config;
 
 import com.example.backend.game.ai.AlphaBetaSearch;
 import com.example.backend.game.ai.PositionEvaluator;
+import com.example.backend.repository.LlmCommentRepository;
 import com.example.backend.service.CommentProvider;
+import com.example.backend.service.CommentTextSanitizer;
 import com.example.backend.service.FallbackCommentProvider;
 import com.example.backend.service.LlmCommentProvider;
 import com.example.backend.service.LlmServiceClient;
@@ -15,6 +17,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestClient;
 
 import java.time.Clock;
+import java.util.random.RandomGenerator;
 
 /**
  * Сборка живого слоя игры: часы (для TTL/таймстампов), реестр партий (ТЗ 4.2),
@@ -64,10 +67,17 @@ public class GameConfiguration {
         return new LlmServiceClient(restClient);
     }
 
-    /** Детерминированный fallback-комментарий (используется при недоступности LLM). */
+    /** Пост-фильтр ответа LLM: русский язык, чистка разметки, ограничение длины. */
     @Bean
-    public FallbackCommentProvider fallbackCommentProvider() {
-        return new FallbackCommentProvider();
+    public CommentTextSanitizer commentTextSanitizer() {
+        return new CommentTextSanitizer();
+    }
+
+    /** Fallback-комментарий: сохранённые реплики LLM (B3) или детерминированный текст. */
+    @Bean
+    public FallbackCommentProvider fallbackCommentProvider(LlmCommentRepository repository,
+                                                           CommentTextSanitizer sanitizer) {
+        return new FallbackCommentProvider(repository, sanitizer, RandomGenerator.getDefault());
     }
 
     /**
@@ -77,7 +87,8 @@ public class GameConfiguration {
     @Bean
     public CommentProvider commentProvider(LlmServiceClient llmClient,
                                            LlmProperties properties,
-                                           FallbackCommentProvider fallback) {
-        return new LlmCommentProvider(llmClient, properties, fallback);
+                                           FallbackCommentProvider fallback,
+                                           CommentTextSanitizer sanitizer) {
+        return new LlmCommentProvider(llmClient, properties, fallback, sanitizer);
     }
 }

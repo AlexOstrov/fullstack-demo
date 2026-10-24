@@ -13,5 +13,12 @@ public interface LlmCommentRepository extends JpaRepository<LlmCommentEntity, Lo
 
     List<LlmCommentEntity> findByGameId(UUID gameId);
 
+    /**
+     * Комментарии с указанным стилем, пригодные для повторного показа:
+     * сохранённые ответы живой LLM ({@code llm_model != null}) с лайком.
+     * Используются как источник fallback-комментариев (B3).
+     */
+    List<LlmCommentEntity> findByStyleAndLikedTrueAndLlmModelIsNotNull(String style);
+
     void deleteByGameId(UUID gameId);
 }
