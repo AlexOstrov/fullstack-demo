@@ -17,7 +17,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.web.client.RestClient;
 
 import java.time.Clock;
-import java.util.random.RandomGenerator;
+import java.util.SplittableRandom;
 
 /**
  * Сборка живого слоя игры: часы (для TTL/таймстампов), реестр партий (ТЗ 4.2),
@@ -77,7 +77,7 @@ public class GameConfiguration {
     @Bean
     public FallbackCommentProvider fallbackCommentProvider(LlmCommentRepository repository,
                                                            CommentTextSanitizer sanitizer) {
-        return new FallbackCommentProvider(repository, sanitizer, RandomGenerator.getDefault());
+        return new FallbackCommentProvider(repository, sanitizer, new SplittableRandom());
     }
 
     /**

@@ -43,6 +43,17 @@ class CommentTextSanitizerTest {
     }
 
     @Test
+    void allowsMoveNotationButRejectsLatinWords() {
+        assertThat(sanitizer.sanitize("Чёрные отвечают ходом b6–a5, сохраняя равновесие."))
+                .hasValueSatisfying(text -> assertThat(text).contains("b6–a5"));
+        assertThat(sanitizer.sanitize("Ход c3×e5 — сильный."))
+                .hasValueSatisfying(text -> assertThat(text).contains("c3×e5"));
+        assertThat(sanitizer.sanitize("Черные продолжают активизироватьPieces on the board."))
+                .as("английские слова не должны попадать в UI даже при русском окружении")
+                .isEmpty();
+    }
+
+    @Test
     void truncatesLongTextAtSentenceBoundary() {
         String longText = "Хороший ход, продолжаем партию. ".repeat(40);
 

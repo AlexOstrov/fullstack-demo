@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Пост-фильтр ответа LLM (B5 из бэклога).
@@ -10,6 +11,7 @@ import java.util.Set;
  *   <li>убирает переводы строк, лишние пробелы, markdown-разметку и обрамляющие кавычки;</li>
  *   <li>отбрасывает ответы с иероглифами/корейским/японским (наблюдалось у qwen2.5);</li>
  *   <li>требует, чтобы кириллица составляла не менее половины букв (иначе — не русский);</li>
+ *   <li>не допускает английских слов, но сохраняет шахматную нотацию вида {@code b6–a5} и {@code c3×e5};</li>
  *   <li>ограничивает длину и обрезает по границе предложения.</li>
  * </ul>
  * Пустой {@link Optional} означает «ответ непригоден» — вызывающий код
@@ -37,6 +39,13 @@ public final class CommentTextSanitizer {
             Character.UnicodeBlock.HALFWIDTH_AND_FULLWIDTH_FORMS
     );
 
+    /** Координатная нотация хода: {@code b6–a5}, {@code c3×e5}, {@code e2-d3}. */
+    private static final Pattern MOVE_NOTATION = Pattern.compile(
+            "(?iu)\\b[a-h][1-8](?:\\s*[-–—×x]\\s*[a-h][1-8])*\\b");
+
+    /** Латиница вне нотации: даже отдельные английские слова недопустимы. */
+    private static final Pattern LATIN_WORD = Pattern.compile("[A-Za-z]{2,}");
+
     /** Очистить и проверить ответ модели. */
     public Optional<String> sanitize(String raw) {
         if (raw == null) {
@@ -52,6 +61,10 @@ public final class CommentTextSanitizer {
             return Optional.empty();
         }
         if (containsRejectedScript(text)) {
+            return Optional.empty();
+        }
+        if (LATIN_WORD.matcher(MOVE_NOTATION.matcher(text).replaceAll(" ")).find()) {
+            // Английские вставки («... активизировать Pieces on the board») — не русский текст.
             return Optional.empty();
         }
         long letters = text.codePoints().filter(Character::isLetter).count();

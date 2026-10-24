@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.SplittableRandom;
 import java.util.random.RandomGenerator;
 
 /**
@@ -34,7 +35,7 @@ public class FallbackCommentProvider implements CommentProvider {
 
     /** Детерминированный провайдер без доступа к сохранённым комментариям (тесты/утилиты). */
     public FallbackCommentProvider() {
-        this(null, new CommentTextSanitizer(), RandomGenerator.getDefault());
+        this(null, new CommentTextSanitizer(), new SplittableRandom());
     }
 
     public FallbackCommentProvider(LlmCommentRepository repository, RandomGenerator random) {
