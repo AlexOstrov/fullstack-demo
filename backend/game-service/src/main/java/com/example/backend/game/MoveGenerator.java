@@ -81,7 +81,9 @@ public final class MoveGenerator {
                     continue;
                 }
                 Cell from = new Cell(row, col);
-                searchCaptures(copy(board), from, piece, player,
+                // Поиск мутирует доску и откатывает изменения в finally —
+                // исходная доска вызывающего остаётся неизменной.
+                searchCaptures(board, from, piece, player,
                         new ArrayList<>(List.of(from)), false, results);
             }
         }
@@ -129,9 +131,9 @@ public final class MoveGenerator {
         }
 
         for (CaptureStep step : steps) {
-            Board next = copy(board);
-            next.remove(from.row(), from.col());
-            next.remove(step.captured().row(), step.captured().col());
+            Piece captured = board.at(step.captured().row(), step.captured().col());
+            board.remove(from.row(), from.col());
+            board.remove(step.captured().row(), step.captured().col());
 
             Piece moved = piece;
             boolean nowPromoted = promoted;
@@ -139,11 +141,18 @@ public final class MoveGenerator {
                 moved = Piece.king(piece.color()); // превращение немедленно, бой продолжается дамкой (ТЗ 3.5)
                 nowPromoted = true;
             }
-            next.place(step.to().row(), step.to().col(), moved);
+            board.place(step.to().row(), step.to().col(), moved);
 
-            List<Cell> nextPath = new ArrayList<>(path);
-            nextPath.add(step.to());
-            searchCaptures(next, step.to(), moved, player, nextPath, nowPromoted, results);
+            try {
+                List<Cell> nextPath = new ArrayList<>(path);
+                nextPath.add(step.to());
+                searchCaptures(board, step.to(), moved, player, nextPath, nowPromoted, results);
+            } finally {
+                // откат: вернуть снятую шашку и исходную фигуру на место
+                board.remove(step.to().row(), step.to().col());
+                board.place(step.captured().row(), step.captured().col(), captured);
+                board.place(from.row(), from.col(), piece);
+            }
         }
     }
 
@@ -212,16 +221,6 @@ public final class MoveGenerator {
     private static final int[][] DIRECTIONS = {
             {-1, -1}, {-1, 1}, {1, -1}, {1, 1}
     };
-
-    private static Board copy(Board board) {
-        Board duplicate = Board.empty();
-        for (int row = 0; row < Board.SIZE; row++) {
-            for (int col = 0; col < Board.SIZE; col++) {
-                duplicate.place(row, col, board.at(row, col));
-            }
-        }
-        return duplicate;
-    }
 
     private record CaptureStep(Cell to, Cell captured) {
     }

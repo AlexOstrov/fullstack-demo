@@ -13,13 +13,13 @@ class MoveGeneratorTest {
     // --- Простые ходы ---
 
     @Test
-    void initialPositionHasFourWhiteForwardMoves() {
+    void initialPositionHasSevenWhiteForwardMoves() {
         Board board = Board.initialPosition();
 
         List<Move> moves = MoveGenerator.generateMoves(board, Color.WHITE);
 
         assertEquals(7, moves.size(),
-                "с начальной позиции у белых7 ходов — все из ряда5 в ряд4, у (5,0) лишь одна диагональ (ТЗ 3.1)");
+                "с начальной позиции у белых 7 ходов — все из ряда 5 в ряд 4, у (5,0) лишь одна диагональ (ТЗ 3.1)");
         assertFalse(MoveGenerator.hasCaptures(board, Color.WHITE));
         for (Move move : moves) {
             assertEquals(MoveType.NORMAL, move.type());

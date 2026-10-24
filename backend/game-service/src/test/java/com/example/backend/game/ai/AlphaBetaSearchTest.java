@@ -193,4 +193,30 @@ class AlphaBetaSearchTest {
         assertTrue(result.elapsedMs() <= 600,
                 "минимальный бюджет 200 мс + запас: " + result.elapsedMs() + " мс");
     }
+
+    /**
+     * R-2 из ревью Sprint 0–2: если время вышло до завершения первой итерации,
+     * ход всё равно валиден, но {@code depth = 0}, а {@code score} — статическая
+     * оценка выбранного хода, а не фиктивный ноль.
+     */
+    @Test
+    void abortedFirstIterationReturnsStaticScoreWithDepthZero() {
+        long[] calls = {0};
+        AlphaBetaSearch timed = new AlphaBetaSearch(new PositionEvaluator(), () -> {
+            long value = calls[0];
+            calls[0] = 1_000_000_000L; // все последующие обращения — «время вышло»
+            return value;
+        });
+        Board board = Board.initialPosition();
+        AiSettings settings = new AiSettings(4, AiSettings.MIN_TIME_BUDGET_MS, 64);
+
+        AiResult result = timed.findBestMove(board, Color.WHITE, settings);
+
+        assertNotNull(result.move());
+        assertEquals(0, result.depth(), "первая итерация прервана — просмотренной глубины нет");
+        int expected = -new PositionEvaluator().evaluate(
+                MoveApplier.apply(board, result.move()), Color.BLACK);
+        assertEquals(expected, result.score(),
+                "score при depth = 0 — статическая оценка выбранного хода");
+    }
 }

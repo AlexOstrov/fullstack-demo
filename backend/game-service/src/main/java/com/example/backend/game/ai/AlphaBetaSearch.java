@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.function.LongSupplier;
 
 /**
  * Минимакс с альфа-бета отсечениями (ТЗ 6): итеративное углубление
@@ -38,13 +39,21 @@ public final class AlphaBetaSearch {
 
     private final PositionEvaluator evaluator;
     private final Zobrist zobrist = Zobrist.INSTANCE;
+    /** Источник наносекунд; подменяется в тестах для детерминированного таймаута. */
+    private final LongSupplier nanoTime;
 
     public AlphaBetaSearch() {
         this(new PositionEvaluator());
     }
 
     public AlphaBetaSearch(PositionEvaluator evaluator) {
+        this(evaluator, System::nanoTime);
+    }
+
+    /** Конструктор для тестов: позволяет управлять моментом «окончания времени». */
+    AlphaBetaSearch(PositionEvaluator evaluator, LongSupplier nanoTime) {
         this.evaluator = Objects.requireNonNull(evaluator, "evaluator");
+        this.nanoTime = Objects.requireNonNull(nanoTime, "nanoTime");
     }
 
     /** Лучший ход с позиции {@code player} в пределах настроек поиска. */
@@ -69,7 +78,7 @@ public final class AlphaBetaSearch {
         Objects.requireNonNull(settings, "settings");
         positionRepetitions = positionRepetitions == null ? Map.of() : positionRepetitions;
 
-        long startNanos = System.nanoTime();
+        long startNanos = nanoTime.getAsLong();
         SearchContext context = new SearchContext(startNanos, settings.timeBudgetMs(),
                 new TranspositionTable(settings.ttCapacity()), positionRepetitions);
 
@@ -94,8 +103,14 @@ public final class AlphaBetaSearch {
             int alpha = -SCORE_BOUND;
 
             List<Move> ordered = MoveOrdering.order(board, rootMoves, bestMove,
-                    context.killer(depth - 1, 0), context.killer(depth - 1, 1));
+                    context.killer(0, 0), context.killer(0, 1));
             for (Move move : ordered) {
+                // бюджет проверяется и на корне: иначе первая итерация может
+                // «зависнуть» на дорогом генераторе/оценке и не заметить таймаут
+                if (nanoTime.getAsLong() > context.deadlineNanos) {
+                    context.timeUp = true;
+                    break;
+                }
                 Board child = MoveApplier.apply(board, move);
                 int score = -negamax(child, player.opposite(), depth - 1,
                         -SCORE_BOUND, -alpha, 1, nextKingMoveCounter(board, move, noCaptureKingMoves),
@@ -122,18 +137,31 @@ public final class AlphaBetaSearch {
             if (Math.abs(bestScore) >= MATE_SCORE - MAX_PLIES) {
                 break; // мат/неизбежная победа найдены — глубже не нужно
             }
-            if (System.nanoTime() > context.deadlineNanos) {
+            if (nanoTime.getAsLong() > context.deadlineNanos) {
                 break; // времени на следующую итерацию не хватит
             }
+        }
+
+        if (completedDepth == 0) {
+            // Первая итерация прервана по времени: ход валиден, но глубокой оценки
+            // нет. Вместо фиктивного score = 0 отдаём статическую оценку выбранного
+            // хода; depth = 0 означает «без просмотра» (R-2 из ревью Sprint 0–2).
+            bestScore = staticScore(board, bestMove, player);
         }
 
         return new AiResult(bestMove, completedDepth, bestScore, context.nodes, elapsedMs(startNanos));
     }
 
+    /** Статическая оценка одного хода с точки зрения ходящей стороны (глубина 0). */
+    private int staticScore(Board board, Move move, Color player) {
+        Board child = MoveApplier.apply(board, move);
+        return -evaluator.evaluate(child, player.opposite());
+    }
+
     private int negamax(Board board, Color sideToMove, int depth, int alpha, int beta,
                         int ply, int noCaptureKingMoves, SearchContext context) {
         if ((context.nodes++ & (TIME_CHECK_INTERVAL - 1)) == 0
-                && System.nanoTime() > context.deadlineNanos) {
+                && nanoTime.getAsLong() > context.deadlineNanos) {
             context.timeUp = true;
             return 0;
         }
@@ -252,8 +280,8 @@ public final class AlphaBetaSearch {
         return score;
     }
 
-    private static long elapsedMs(long startNanos) {
-        return (System.nanoTime() - startNanos) / 1_000_000;
+    private long elapsedMs(long startNanos) {
+        return Math.max(0, nanoTime.getAsLong() - startNanos) / 1_000_000;
     }
 
     /** Состояние одного поиска: дедлайн, счётчик узлов, TT, киллер-ходы, история повторений. */
